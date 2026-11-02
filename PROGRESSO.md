@@ -1,5 +1,21 @@
 # PROGRESSO
 
+# 🌙 RESUMO DA RODADA 3 (pedido a9f4 nº 2) – tudo compila; builds de conferência 0 erros; NADA instalado no Quest
+1. **Cor ao pegar:** causa = `BrilhoProximidade` misturava com branco; agora só sobe o brilho (até +20%) na mesma cor.
+2. **Visão preta:** `CameraOlhos` com aquecimento, teste de brilho, Blit+ReadPixels, tenta todas as câmeras, salva `ultima_foto.jpg` e mostra miniatura por 5 s.
+3. **Notas:** letra no tamanho dos painéis, cartão cresce em altura, `editar_nota`, estado (texto/letra/cor/escala) salvo na âncora.
+4. **Limites:** a Zetta explica o que consegue fazer de parecido.
+5. **Modelo 3D:** funciona de ponta a ponta no editor (imagem 5–9 s → TRELLIS.2 33–81 s → GLB → glTFast 0,2 s). Causa da falha anterior: GLB com texturas WebP que o glTFast não lê; agora as texturas são trocadas por uma cor única (modelo sem textura). Para textura real: plugin nativo libwebp (ver R3-5).
+
+## Testes no óculos, em ordem (instale antes: `adb install -r Builds/JarvisMR.apk`)
+1. Criar um cubo azul e pegar: deve continuar azul (um pouco mais claro), nunca branco; soltar volta ao normal. Repetir com modelo pronto ("sistema solar") e nota.
+2. "Zetta, o que você vê?": aparece uma miniatura da foto por 5 s ao lado do anel; se vier preta, `adb logcat -s Unity | findstr CameraOlhos` (câmeras e brilho) e `adb pull /sdcard/Android/data/com.luiz.jarvismr/files/ultima_foto.jpg`.
+3. "Zetta, anote: comprar leite": cartão a ~0,7 m, letra legível; "letra maior", "acrescente: e pão", "mude a cor para amarelo", "cartão maior"; escalar com duas mãos; soltar na parede (gruda); fechar e reabrir o app (texto, cor, tamanho e lugar voltam).
+4. Pedir algo impossível ("toque uma música"): ela deve dizer o que consegue fazer de parecido.
+5. "Zetta, crie uma caneca realista" (1–2 min): o modelo aparece cinza/cor única, sem textura; "mostre meus modelos".
+6. Depois: lista da Rodada 2 em `AVALIACAO.md` (apagar objetos, sites, âncoras, FPS).
+
+
 # 🌙 RESUMO DA RODADA 2 (autônoma)
 - **Feitas e commitadas** (cada uma com Console sem erros e build Android de conferência com 0 erros): tarefas 6 (frases cortadas: NO_INTERRUPTION + mic fechado durante o turno), 7 (visão com `CameraOlhos` + permissões), 8 (apagar objetos: ids, `listar_objetos`, sinônimos, desenhos, "isso" pela mão/olhar), 9 (notas holográficas que grudam em paredes/mesas e têm âncora), 10 (`AVALIACAO.md`). Tarefas 0–5 já estavam prontas.
 - **Nada foi instalado no Quest** (como pedido): o APK instalado ainda é o do commit `e156519`. Tudo desta rodada só foi testado no editor.
@@ -461,3 +477,9 @@ Feito agora:
 
 ### R3-4 Regra geral de limites (feito; build 0 erros)
 - `AssistenteVoz.BaseInstrucao` ganhou "REGRA DE LIMITES": se não há ferramenta para o pedido, em vez de só "não posso" ela diz em uma frase o que consegue fazer de parecido e oferece. Comportamento real só se ouve no Quest (depende da Gemini).
+
+### R3-5 Modelos 3D de ponta a ponta (token HF presente no asset; nunca impresso)
+- Teste real no editor: "caneca realista". Tempos: imagem FLUX 5,4 s e 9,1 s (2 execuções); TRELLIS.2 (envio + geração + exportação + download do GLB, 3–4 MB) 32,9 s e 80,7 s; leitura/instanciação glTFast 0,2 s; total até salvar 38 s e 90 s. Os endpoints (`infer`, `start_session`, `preprocess_image`, `image_to_3d`, `extract_glb`) continuam válidos; o token foi aceito.
+- Falha achada: o GLB do TRELLIS.2 tem texturas WebP (`EXT_texture_webp`, exigida) e o glTFast não decodifica WebP sem plugin nativo ("não conseguiu ler o arquivo GLB").
+- Correção: `GeradorModelo3D.AdaptarGlbSemWebP` reescreve o GLB (remove texturas e a extensão exigida, mantém geometria) e usa como cor base a cor dominante da imagem de entrada (`CorDominante`; cinza claro se não achar). Resultado: o modelo abre, com cor única, sem textura. Logs `[tempo]` por etapa ficam no Console.
+- Para ter textura de verdade: compilar libwebp como plugin nativo `webp-unity` (Android arm64 + Windows) e registrar o `WebpTextureAddon` do glTFast (exemplo em `Library/PackageCache/com.unity.cloud.gltfast*/Runtime/DocExamples`), ou um pacote Unity de WebP. Não feito: precisa baixar binários nativos e validar no Quest.

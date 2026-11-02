@@ -111,6 +111,9 @@ public class GeradorModelo3D : MonoBehaviour
             clienteAtual = clienteTrellis;
         }
 
+        Debug.Log("GeradorModelo3D: [tempo] imagem de entrada " + (Time.time - inicio).ToString("0.0") + " s (" + (imagem != null ? imagem.Length / 1024 + " KB" : "falhou") + ")");
+        float tTrellis = Time.time;
+
         // 2) imagem → 3D (TRELLIS.2)
         if (imagem != null && erro == null)
         {
@@ -125,6 +128,13 @@ public class GeradorModelo3D : MonoBehaviour
             }
             else glb = t.Result;
         }
+
+        // o TRELLIS.2 exporta texturas WebP (EXT_texture_webp) e o glTFast não decodifica WebP sem um plugin nativo:
+        // troca as texturas por uma cor única tirada da imagem de entrada, para o modelo ao menos abrir
+        if (glb != null) glb = AdaptarGlbSemWebP(glb, CorDominante(imagem));
+
+        if (imagem != null && erro == null)
+            Debug.Log("GeradorModelo3D: [tempo] TRELLIS.2 (inclui envio, geração, exportação e download) " + (Time.time - tTrellis).ToString("0.0") + " s" + (glb != null ? ", GLB " + glb.Length / 1024 + " KB" : ", falhou"));
 
         // 3) reserva: texto → 3D direto (Shap-E) se a imagem ou o TRELLIS falharam
         if (glb == null && origem == "descricao")
@@ -160,7 +170,9 @@ public class GeradorModelo3D : MonoBehaviour
         Directory.CreateDirectory(pasta);
         string caminho = Path.Combine(pasta, NomeArquivo(nome) + "_" + DateTime.Now.Ticks + ".glb");
         File.WriteAllBytes(caminho, glb);
+        float tCarga = Time.time;
         var raiz = CriarRaizGlb(pos, rot, caminho, nome, tamanhoFinal, true);
+        Debug.Log("GeradorModelo3D: [tempo] total até salvar " + (tCarga - inicio).ToString("0.0") + " s; carregamento glTFast começa agora");
         ocupado = false;
         voz?.Falar("o modelo 3D de " + nome + " ficou pronto depois de " + Mathf.RoundToInt(Time.time - inicio) + " segundos. Avise o usuário em uma frase curta e animada.");
     }
@@ -258,6 +270,85 @@ public class GeradorModelo3D : MonoBehaviour
     {
         var r = await c.Chamar("text-to-3d", new JArray(desc, UnityEngine.Random.Range(0, 100000), 15, 64));
         return await c.Baixar(r[0]);
+    }
+
+    // cor média do objeto na imagem de entrada: ignora pixels parecidos com o fundo (média dos cantos)
+    static Color CorDominante(byte[] jpeg)
+    {
+        var padrao = new Color(0.78f, 0.78f, 0.8f);
+        if (jpeg == null) return padrao;
+        var tex = new Texture2D(2, 2);
+        try
+        {
+            if (!tex.LoadImage(jpeg)) return padrao;
+            int w = tex.width, h = tex.height;
+            Color fundo = (tex.GetPixel(4, 4) + tex.GetPixel(w - 5, 4) + tex.GetPixel(4, h - 5) + tex.GetPixel(w - 5, h - 5)) * 0.25f;
+            float r = 0, g = 0, b = 0; int n = 0;
+            for (int y = h / 5; y < h * 4 / 5; y += 4)
+                for (int x = w / 5; x < w * 4 / 5; x += 4)
+                {
+                    var c = tex.GetPixel(x, y);
+                    var d = c - fundo;
+                    if (d.r * d.r + d.g * d.g + d.b * d.b < 0.03f) continue;
+                    r += c.r; g += c.g; b += c.b; n++;
+                }
+            return n > 20 ? new Color(r / n, g / n, b / n) : padrao;
+        }
+        catch { return padrao; }
+        finally { Destroy(tex); }
+    }
+
+    // Reescreve o GLB: remove texturas WebP e a extensão exigida, usa 'cor' como cor base do material.
+    // Estrutura GLB: cabeçalho 12 bytes + bloco JSON (tamanho, tipo, dados com padding de espaços) + bloco BIN.
+    public static byte[] AdaptarGlbSemWebP(byte[] glb, Color cor)
+    {
+        try
+        {
+            if (glb.Length < 28 || BitConverter.ToUInt32(glb, 0) != 0x46546C67) return glb;
+            int jl = (int)BitConverter.ToUInt32(glb, 12);
+            var json = JObject.Parse(System.Text.Encoding.UTF8.GetString(glb, 20, jl));
+            string usadas = json["extensionsUsed"]?.ToString() ?? "";
+            if (!usadas.Contains("EXT_texture_webp")) return glb;
+
+            json.Remove("textures");
+            json.Remove("images");
+            json.Remove("extensionsRequired");
+            json.Remove("extensionsUsed");
+            if (json["materials"] is JArray mats)
+                foreach (var m in mats)
+                {
+                    var pbr = m["pbrMetallicRoughness"] as JObject ?? new JObject();
+                    pbr.Remove("baseColorTexture");
+                    pbr.Remove("metallicRoughnessTexture");
+                    pbr["baseColorFactor"] = new JArray(Mathf.Pow(cor.r, 2.2f), Mathf.Pow(cor.g, 2.2f), Mathf.Pow(cor.b, 2.2f), 1f);   // fator é linear
+                    pbr["metallicFactor"] = 0.0;
+                    pbr["roughnessFactor"] = 0.75;
+                    m["pbrMetallicRoughness"] = pbr;
+                    (m as JObject)?.Remove("normalTexture");
+                    (m as JObject)?.Remove("occlusionTexture");
+                    (m as JObject)?.Remove("emissiveTexture");
+                }
+            var novo = System.Text.Encoding.UTF8.GetBytes(json.ToString(Newtonsoft.Json.Formatting.None));
+            int pad = (4 - novo.Length % 4) % 4;
+            int njl = novo.Length + pad;
+            int restoIni = 20 + jl;                       // o que vem depois do bloco JSON (bloco BIN)
+            int total = 12 + 8 + njl + (glb.Length - restoIni);
+            var saida = new byte[total];
+            Buffer.BlockCopy(glb, 0, saida, 0, 12);
+            Buffer.BlockCopy(BitConverter.GetBytes((uint)total), 0, saida, 8, 4);
+            Buffer.BlockCopy(BitConverter.GetBytes((uint)njl), 0, saida, 12, 4);
+            Buffer.BlockCopy(glb, 16, saida, 16, 4);       // tipo "JSON"
+            Buffer.BlockCopy(novo, 0, saida, 20, novo.Length);
+            for (int i = 0; i < pad; i++) saida[20 + novo.Length + i] = 0x20;
+            Buffer.BlockCopy(glb, restoIni, saida, 20 + njl, glb.Length - restoIni);
+            Debug.Log("GeradorModelo3D: texturas WebP removidas do GLB (cor base " + ColorUtility.ToHtmlStringRGB(cor) + ")");
+            return saida;
+        }
+        catch (Exception e)
+        {
+            Debug.LogWarning("GeradorModelo3D: não consegui adaptar o GLB: " + e.Message);
+            return glb;
+        }
     }
 
     // nome do arquivo = descrição sem caracteres inválidos (a biblioteca de modelos lê o nome daqui)
@@ -367,6 +458,7 @@ public class GeradorModelo3D : MonoBehaviour
 
         var conteudo = new GameObject("Conteudo").transform;
         conteudo.SetParent(raiz.transform, false);
+        float tLeitura = Time.realtimeSinceStartup;
         var gltf = new GltfImport();
         var carregar = gltf.LoadGltfBinary(dados);
         while (!carregar.IsCompleted) yield return null;
@@ -374,6 +466,7 @@ public class GeradorModelo3D : MonoBehaviour
         var inst = gltf.InstantiateMainSceneAsync(conteudo);
         while (!inst.IsCompleted) yield return null;
         if (raiz == null) yield break;
+        Debug.Log("GeradorModelo3D: [tempo] glTFast leu e instanciou o GLB em " + (Time.realtimeSinceStartup - tLeitura).ToString("0.0") + " s (" + dados.Length / 1024 + " KB)");
 
         // normaliza: escala para 'tamanho' no maior eixo e centraliza na raiz
         var b = LimitesMundo(conteudo);
