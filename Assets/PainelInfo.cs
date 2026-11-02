@@ -36,6 +36,9 @@ public class PainelInfo : MonoBehaviour
         "para ver na tela, chame mostrar_painel com um título e de 1 a 4 linhas bem curtas e responda por voz em uma ou duas frases.";
 
     Transform painelAtual;
+    TMPro.TMP_Text corpoAtual;
+    string tituloAtual;
+    float fimEm;
 
     void Awake()
     {
@@ -50,6 +53,18 @@ public class PainelInfo : MonoBehaviour
         if (args["linhas"] is JArray arr) foreach (var l in arr) linhas.Add(l.ToString());
         float duracao = Mathf.Clamp(args.Value<float?>("duracao") ?? duracaoPadrao, 5f, 120f);
 
+        var corpoTexto = new StringBuilder();
+        foreach (var l in linhas) corpoTexto.AppendLine("• " + l);
+
+        // mesmo título (ex.: "publicando..." com contador): só atualiza o texto e renova o tempo, sem recriar o painel
+        if (painelAtual != null && corpoAtual != null && tituloAtual == titulo)
+        {
+            corpoAtual.text = corpoTexto.ToString();
+            fimEm = Time.time + duracao;
+            return new JObject { ["result"] = "painel atualizado por " + duracao + " s" };
+        }
+
+        StopAllCoroutines();   // a animação do painel antigo não pode continuar sobre um objeto destruído
         if (painelAtual != null) Destroy(painelAtual.gameObject);
         var raiz = HoloUtil.CriarPainel(transform, "PainelInfo", tamanho);
         var pos = HoloUtil.PontoNaVista(posicaoVista);
@@ -58,10 +73,11 @@ public class PainelInfo : MonoBehaviour
 
         HoloUtil.CriarTexto(raiz, "Titulo", titulo, new Vector3(0, tamanho.y * 0.5f - 0.035f, -0.002f),
             new Vector2(tamanho.x - 0.04f, 0.05f), 0.12f, HoloUtil.Ciano);
-        var corpo = new StringBuilder();
-        foreach (var l in linhas) corpo.AppendLine("• " + l);
-        HoloUtil.CriarTexto(raiz, "Corpo", corpo.ToString(), new Vector3(0, -0.03f, -0.002f),
+        HoloUtil.CriarTexto(raiz, "Corpo", corpoTexto.ToString(), new Vector3(0, -0.03f, -0.002f),
             new Vector2(tamanho.x - 0.04f, tamanho.y - 0.1f), 0.18f, Color.white, TMPro.TextAlignmentOptions.TopLeft);
+        var tCorpo = raiz.Find("Corpo");
+        corpoAtual = tCorpo != null ? tCorpo.GetComponent<TMPro.TMP_Text>() : null;
+        tituloAtual = titulo;
 
         // botão poke para fechar o painel
         BotaoHolo.Criar(raiz, "X", new Vector3(tamanho.x * 0.5f - 0.03f, tamanho.y * 0.5f - 0.03f, 0f),
@@ -75,7 +91,8 @@ public class PainelInfo : MonoBehaviour
     IEnumerator Ciclo(Transform raiz, float duracao)
     {
         yield return HoloUtil.Surgir(raiz);
-        yield return new WaitForSeconds(duracao);
+        fimEm = Time.time + duracao;
+        while (raiz != null && Time.time < fimEm) yield return null;
         // encolhe e some
         for (float t = 0; t < 0.4f && raiz != null; t += Time.deltaTime)
         {

@@ -14,7 +14,6 @@ using UnityEngine.Networking;
 public class EstudioSites : MonoBehaviour
 {
     public string modeloGemini = "gemini-3.6-flash";
-    public string repositorio = "zetta-sites";
     public string versaoAFrame = "1.6.0";
 
     const string Decl = @"[
@@ -55,7 +54,8 @@ public class EstudioSites : MonoBehaviour
     PainelInfo painel;
     readonly List<Site> sites = new List<Site>();
     string pasta, indice;
-    bool ocupado, repoPronto;
+    bool ocupado;
+    public string ultimaFalha = "";   // "motivo" da última falha de publicação (também aparece no rótulo do anel)
 
     void Awake()
     {
@@ -78,7 +78,16 @@ public class EstudioSites : MonoBehaviour
 
     // ------------------------------------------------------------------ ferramentas
     ZettaSegredos Seg => voz != null ? voz.segredos : null;
-    bool TemGitHub => Seg != null && !string.IsNullOrWhiteSpace(Seg.tokenGitHub) && !string.IsNullOrWhiteSpace(Seg.usuarioGitHub);
+    bool TemGitHub => Seg != null && !string.IsNullOrWhiteSpace(Seg.githubToken) && Dono.Length > 0 && NomeRepo.Length > 0;
+    string Dono => RepoParte(0);
+    string NomeRepo => RepoParte(1);
+
+    // "dono/repositorio" do ZettaSegredos
+    string RepoParte(int i)
+    {
+        var t = (Seg != null ? Seg.githubRepositorio ?? "" : "").Trim().Trim('/').Split('/');
+        return t.Length == 2 ? t[i].Trim() : "";
+    }
 
     JObject CriarSite(JObject a)
     {
@@ -119,7 +128,7 @@ public class EstudioSites : MonoBehaviour
         var s = Achar(a.Value<string>("nome"));
         if (s == null) return new JObject { ["erro"] = "não encontrei esse site" };
         if (!s.publicado || string.IsNullOrEmpty(s.url)) return new JObject { ["erro"] = "este site não foi publicado, então não dá para abrir" };
-        Application.OpenURL(s.url);   // no Quest vira um intent ACTION_VIEW: abre no navegador, ao lado do app
+        AbrirNoNavegador(s.url);
         return new JObject { ["result"] = "abrindo " + s.titulo + " no navegador" };
     }
 
@@ -162,24 +171,54 @@ public class EstudioSites : MonoBehaviour
             site.publicado = false;
             Gravar();
             ocupado = false;
-            Painel("Site: " + titulo, "salvo no óculos, mas não publicado (falta o token do GitHub)", 20);
-            voz?.Falar("o site " + titulo + " foi criado e salvo no óculos, mas não consegui publicar porque falta configurar o token do GitHub. Avise em uma frase.");
+            Falha(titulo, "sem_token");
             yield break;
         }
 
-        Painel("Site: " + titulo, "publicando...", 120);
+        Painel("Site: " + titulo, "publicando...", 150);
+        string marca = "<!-- zetta:" + DateTime.UtcNow.Ticks + " -->";
         string erro = null;
-        yield return Publicar(site, resp.texto, e => erro = e);
-        ocupado = false;
-        if (erro != null)
+        yield return Publicar(site, resp.texto + "\n" + marca, c => erro = c);
+        if (erro != null) { ocupado = false; Falha(titulo, erro); yield break; }
+
+        // espera o GitHub Pages servir a versão nova (até ~90 s): responde 200 com a marca desta publicação
+        bool noAr = false;
+        float ini = Time.realtimeSinceStartup;
+        while (Time.realtimeSinceStartup - ini < 90f)
         {
-            Debug.LogWarning("EstudioSites: publicação falhou: " + erro);
-            Painel("Site: " + titulo, "falha ao publicar", 15);
-            voz?.Falar("o site " + titulo + " foi criado, mas a publicação falhou. Avise em uma frase e diga que está salvo no óculos.");
-            yield break;
+            Painel("Site: " + titulo, "publicando...\naguardando o GitHub Pages (" + Mathf.RoundToInt(Time.realtimeSinceStartup - ini) + " s)", 20);
+            var pg = new Resp();
+            yield return Chamar("GET", site.url + "?t=" + DateTime.UtcNow.Ticks, null, SemCache, pg);
+            if (pg.codigo == 200 && pg.texto != null && pg.texto.Contains(marca)) { noAr = true; break; }
+            yield return new WaitForSecondsRealtime(4f);
         }
-        Painel("Site: " + titulo, "publicado!\n" + site.url, 40);
-        voz?.Falar("o site " + titulo + " foi publicado. Diga em uma frase que a internet leva cerca de um minuto para liberar a página e ofereça abrir no navegador.");
+        ocupado = false;
+        if (!noAr) { Falha(titulo, "demorou"); StartCoroutine(AguardarTardio(site, titulo, marca)); yield break; }
+
+        ultimaFalha = "";
+        Painel("Site: " + titulo, "no ar!\n" + site.url, 40);
+        AbrirNoNavegador(site.url);
+        voz?.Falar("o site " + titulo + " está no ar e acabei de abrir no navegador do óculos. Avise em uma frase curta e animada.");
+    }
+
+    // O Pages às vezes leva 2–3 min: depois do aviso de demora, continua olhando (até 5 min) e abre o link quando subir.
+    IEnumerator AguardarTardio(Site site, string titulo, string marca)
+    {
+        float ini = Time.realtimeSinceStartup;
+        while (Time.realtimeSinceStartup - ini < 300f)
+        {
+            yield return new WaitForSecondsRealtime(10f);
+            var pg = new Resp();
+            yield return Chamar("GET", site.url + "?t=" + DateTime.UtcNow.Ticks, null, SemCache, pg);
+            if (pg.codigo == 200 && pg.texto != null && pg.texto.Contains(marca))
+            {
+                ultimaFalha = "";
+                Painel("Site: " + titulo, "no ar!\n" + site.url, 40);
+                AbrirNoNavegador(site.url);
+                voz?.Falar("o site " + titulo + " finalmente ficou no ar e acabei de abrir no navegador do óculos. Avise em uma frase curta.");
+                yield break;
+            }
+        }
     }
 
     IEnumerator FluxoApagar(Site s)
@@ -237,42 +276,44 @@ public class EstudioSites : MonoBehaviour
     // ------------------------------------------------------------------ GitHub (API REST)
     Dictionary<string, string> CabGit() => new Dictionary<string, string>
     {
-        ["Authorization"] = "Bearer " + Seg.tokenGitHub,
+        ["Authorization"] = "Bearer " + Seg.githubToken.Trim(),
         ["Accept"] = "application/vnd.github+json",
         ["X-GitHub-Api-Version"] = "2022-11-28",
         ["User-Agent"] = "ZettaMR"
     };
 
-    string Api(string caminho) => "https://api.github.com/repos/" + Seg.usuarioGitHub + "/" + repositorio + caminho;
+    static readonly Dictionary<string, string> SemCache = new Dictionary<string, string> { ["Cache-Control"] = "no-cache" };
 
-    IEnumerator GarantirRepo(Action<string> falha)
+    string Api(string caminho) => "https://api.github.com/repos/" + Dono + "/" + NomeRepo + caminho;
+
+    static string CodigoHttp(long c)
     {
-        if (repoPronto) yield break;
-        var r = new Resp();
-        yield return Chamar("GET", Api(""), null, CabGit(), r);
-        if (r.codigo == 404)
+        switch (c)
         {
-            var novo = new JObject { ["name"] = repositorio, ["description"] = "Sites criados pela Zetta", ["auto_init"] = true, ["private"] = false };
-            yield return Chamar("POST", "https://api.github.com/user/repos", novo.ToString(Formatting.None), CabGit(), r);
+            case 0: return "rede";
+            case 401: return "token_invalido";
+            case 403: return "sem_permissao";
+            case 404: return "repo_nao_encontrado";
+            case 429: return "limite";
+            default: return "http_" + c;
         }
-        if (!r.Ok) { falha("repositório: HTTP " + r.codigo); yield break; }
-
-        // liga o GitHub Pages (409 = já ligado)
-        var pg = new Resp();
-        var src = new JObject { ["source"] = new JObject { ["branch"] = "main", ["path"] = "/" } };
-        yield return Chamar("POST", Api("/pages"), src.ToString(Formatting.None), CabGit(), pg);
-        if (!pg.Ok && pg.codigo != 409) Debug.LogWarning("EstudioSites: Pages HTTP " + pg.codigo);
-        repoPronto = true;
     }
+
 
     IEnumerator Publicar(Site site, string html, Action<string> falha)
     {
-        string erro = null;
-        yield return GarantirRepo(e => erro = e);
-        if (erro != null) { falha(erro); yield break; }
+        // confere o repositório e a permissão de escrita do token
+        var r = new Resp();
+        yield return Chamar("GET", Api(""), null, CabGit(), r);
+        if (!r.Ok) { falha(CodigoHttp(r.codigo)); yield break; }
+        try
+        {
+            var push = JObject.Parse(r.texto)["permissions"]?["push"];
+            if (push != null && push.Type == JTokenType.Boolean && !(bool)push) { falha("sem_permissao"); yield break; }
+        }
+        catch { }
 
         string caminho = "/contents/" + site.slug + "/index.html";
-        var r = new Resp();
         yield return Chamar("GET", Api(caminho), null, CabGit(), r);
         string sha = null;
         if (r.Ok) { try { sha = JObject.Parse(r.texto).Value<string>("sha"); } catch { } }
@@ -284,9 +325,9 @@ public class EstudioSites : MonoBehaviour
         };
         if (sha != null) corpo["sha"] = sha;
         yield return Chamar("PUT", Api(caminho), corpo.ToString(Formatting.None), CabGit(), r);
-        if (!r.Ok) { falha("publicação: HTTP " + r.codigo); yield break; }
+        if (!r.Ok) { falha(CodigoHttp(r.codigo)); yield break; }
 
-        site.url = "https://" + Seg.usuarioGitHub.ToLowerInvariant() + ".github.io/" + repositorio + "/" + site.slug + "/";
+        site.url = "https://" + Dono.ToLowerInvariant() + ".github.io/" + NomeRepo + "/" + site.slug + "/";
         site.publicado = true;
         Gravar();
     }
@@ -302,6 +343,74 @@ public class EstudioSites : MonoBehaviour
         var corpo = new JObject { ["message"] = "apaga " + site.slug, ["sha"] = sha };
         yield return Chamar("DELETE", Api(caminho), corpo.ToString(Formatting.None), CabGit(), r);
         if (!r.Ok) falha("HTTP " + r.codigo);
+    }
+
+    // ------------------------------------------------------------------ falhas explicadas e navegador
+    // Mostra o motivo no painel e no rótulo do anel e faz a Zetta explicar por voz.
+    void Falha(string titulo, string codigo)
+    {
+        string curto, voice;
+        switch (codigo)
+        {
+            case "sem_token":
+                curto = "falta o token do GitHub";
+                voice = "o site foi criado e salvo no óculos, mas não foi publicado porque falta o token do GitHub. Diga que o usuário precisa colar o token no arquivo de segredos do app.";
+                break;
+            case "token_invalido":
+                curto = "token do GitHub inválido ou vencido";
+                voice = "não consegui publicar porque o token do GitHub está inválido ou venceu. Peça para gerar um token novo e colar no arquivo de segredos.";
+                break;
+            case "sem_permissao":
+                curto = "sem permissão no repositório";
+                voice = "não consegui publicar porque o token do GitHub não tem permissão de escrita no repositório. Diga que o token precisa da permissão Contents com leitura e escrita.";
+                break;
+            case "repo_nao_encontrado":
+                curto = "repositório não encontrado";
+                voice = "não consegui publicar porque o repositório de sites não foi encontrado ou o token não tem acesso a ele. Peça para conferir o nome do repositório e o token.";
+                break;
+            case "limite":
+                curto = "limite de uso do GitHub";
+                voice = "não consegui publicar porque o GitHub limitou os pedidos. Sugira tentar de novo daqui a alguns minutos.";
+                break;
+            case "rede":
+                curto = "sem conexão com o GitHub";
+                voice = "não consegui publicar porque estou sem conexão com o GitHub. Peça para conferir a internet.";
+                break;
+            case "demorou":
+                curto = "a publicação demorou";
+                voice = "o site foi enviado ao GitHub, mas a página demorou mais de um minuto e meio para ficar no ar. Diga que ela pode aparecer em alguns minutos e que dá para pedir para abrir depois.";
+                break;
+            default:
+                curto = "erro do GitHub (" + codigo + ")";
+                voice = "não consegui publicar por um erro do GitHub. Diga que o site está salvo no óculos e sugira tentar de novo.";
+                break;
+        }
+        ultimaFalha = curto;
+        Debug.LogWarning("EstudioSites: publicação falhou: " + codigo);
+        voz?.MostrarAviso("site: " + curto, 8f);
+        Painel("Site: " + titulo, curto, 30);
+        voz?.Falar("sobre o site " + titulo + ": " + voice + " Explique em até duas frases simples.");
+    }
+
+    // Abre o link no navegador do Quest (intent Android ACTION_VIEW); fora do Android, no navegador padrão.
+    public static void AbrirNoNavegador(string url)
+    {
+#if UNITY_ANDROID && !UNITY_EDITOR
+        try
+        {
+            using (var up = new AndroidJavaClass("com.unity3d.player.UnityPlayer"))
+            using (var act = up.GetStatic<AndroidJavaObject>("currentActivity"))
+            using (var uri = new AndroidJavaClass("android.net.Uri").CallStatic<AndroidJavaObject>("parse", url))
+            using (var intent = new AndroidJavaObject("android.content.Intent", "android.intent.action.VIEW", uri))
+            {
+                intent.Call<AndroidJavaObject>("addFlags", 0x10000000);   // FLAG_ACTIVITY_NEW_TASK
+                act.Call("startActivity", intent);
+            }
+            return;
+        }
+        catch (Exception e) { Debug.LogWarning("EstudioSites: intent falhou, usando OpenURL: " + e.Message); }
+#endif
+        Application.OpenURL(url);
     }
 
     // ------------------------------------------------------------------ utilidades

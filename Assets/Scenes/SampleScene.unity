@@ -1970,8 +1970,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EstudioSites
   modeloGemini: gemini-3.6-flash
-  repositorio: zetta-sites
   versaoAFrame: 1.6.0
+  ultimaFalha: 
 --- !u!4 &1276554663
 Transform:
   m_ObjectHideFlags: 0

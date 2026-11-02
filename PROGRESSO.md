@@ -1,5 +1,30 @@
 # PROGRESSO
 
+# 🌐 ESTÚDIO DE SITES – PUBLICAÇÃO NO GITHUB PAGES (testada de verdade)
+
+## Pronto
+- `ZettaSegredos` (fora do git): campo `githubToken` (o valor antigo de `tokenGitHub` foi preservado por `FormerlySerializedAs`) e `githubRepositorio` = `escanor00/zetta-sites`. O token está só no asset `Assets/Segredos/ZettaSegredos.asset`, que o `.gitignore` ignora.
+- **Atenção:** ao colar, o token foi parar dentro de `ZettaSegredos.cs` (no atributo `FormerlySerializedAs`). Movi para o asset e limpei o `.cs`; **nunca foi commitado** (`git grep` limpo). Cole sempre pelo Inspector, no campo `Github Token` do asset. Como o valor apareceu no texto desta sessão, se for compartilhar a conversa ou os logs, gere um token novo no GitHub.
+- Fluxo `criar_site`/`atualizar_site`: Gemini gera o HTML → confere o repositório e a permissão de escrita do token → `PUT /contents/<site>/index.html` → painel "publicando…" com o contador → consulta a URL (a cada 4 s, até 90 s) até responder 200 **com a marca desta publicação** → painel "no ar!" → **abre sozinha no navegador do Quest** (intent Android `ACTION_VIEW`; no editor abre no navegador do PC) → a Zetta avisa por voz.
+- Se passar de 90 s: aviso "a publicação demorou" (voz + rótulo do anel + painel) e uma espera silenciosa de até 5 min que abre o link quando a página subir (o Pages levou ~3 min numa atualização).
+- Erros explicados por voz e no status: falta o token (`sem_token`), token inválido/vencido (401), sem permissão (403), repositório não encontrado (404), limite do GitHub (429), sem conexão, demora e erro genérico (`http_N`).
+- Corrigido bug antigo do `PainelInfo` (`MissingReferenceException` ao trocar de painel): agora atualiza o texto no lugar quando o título é o mesmo e para as animações antes de recriar.
+
+## Testado no editor com o token real
+1. Repositório público, branch `main`, site base `https://escanor00.github.io/zetta-sites/` responde 200; `PUT` sem token dá 401 (mapeado para "token inválido").
+2. `criar_site` "Teste Zetta" → publicado → `https://escanor00.github.io/zetta-sites/teste-zetta/` respondeu **HTTP 200** com a marca da publicação.
+3. `atualizar_site` → commit "atualiza teste-zetta" no GitHub e a página refletiu a mudança (~3 min no Pages; acima dos 90 s, por isso a espera tardia).
+4. `apagar_site` → commit "apaga teste-zetta"; repositório limpo. Sem token: "falta o token do GitHub" (painel + rótulo).
+- **Não testado:** abrir o navegador pelo intent dentro do Quest, e o que acontece com o app imersivo quando o navegador abre (o Quest pode pausar o app: mic e anel param até você voltar; o app reconecta ao retomar).
+
+## Testes no óculos, em ordem
+1. "Zetta, crie um site sobre o sistema solar": painel "publicando…" com contador e, em ~1–3 min, o navegador abre sozinho com o site.
+2. Ao voltar ao app, conferir se a Zetta ouve (reconexão após pausa) e o anel está de volta.
+3. "Liste meus sites", "adicione uma seção sobre Marte" (aguarde o Pages), "apague o site do sistema solar".
+4. Teste de erro: apagar o token no asset, refazer o build e pedir um site: ela deve dizer que falta o token.
+
+---
+
 # 🧊 DIAGNÓSTICO DO MODELO 3D (último pedido que falhou)
 
 **Etapa que falhou: a PRIMEIRA, a geração da imagem** (não é o Gemini: a imagem vem do Space gratuito **FLUX.1-schnell**), por **cota do ZeroGPU do Hugging Face**: `You have exceeded your ZeroGPU quota (90s requested vs. 0s left)... Authenticate with a Hugging Face token for more quota`. O plano B (Shap-E) recebeu a mesma recusa. Ou seja, o TRELLIS.2 nem chegou a ser chamado; o endpoint não mudou e o download/glTFast não foram exercitados. Reproduzido no editor com a mesma conexão (o logcat do Quest só tinha 5 linhas do Unity, sem registro da sua tentativa; a causa bate com a do teste da Fase 6).
