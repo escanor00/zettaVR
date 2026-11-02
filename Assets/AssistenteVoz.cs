@@ -23,19 +23,55 @@ public class AssistenteVoz : MonoBehaviour
         "Seu nome é Zetta (sempre com dois T's), uma assistente holográfica em realidade mista. " +
         "Personalidade: educada, espirituosa e prestativa, com humor leve e sutil. " +
         "Responda sempre em português do Brasil, em frases curtas e naturais (no máximo duas frases, salvo se pedirem mais). " +
-        "REGRA DE ATIVAÇÃO: você só responde quando a fala do usuário COMEÇA com a palavra \"Zetta\" " +
-        "(aceite variações de pronúncia como Zeta ou Zéta). Se a fala não começar com Zetta, fique em completo silêncio: " +
-        "não responda, não comente, não use ferramentas e não faça perguntas. Ruídos e conversas ao fundo devem ser ignorados. ";
+        "REGRA DE ATIVAÇÃO: você se chama Zetta e só responde quando o usuário te chama pelo nome no começo da fala. " +
+        "O nome costuma ser transcrito errado: pode soar como \"Zeta\", \"Zé\", \"Zê\", \"Z\" ou \"Seta\"; trate qualquer um desses como um chamado. " +
+        "Se a fala não começar com um chamado assim, fique em completo silêncio: " +
+        "não responda, não comente, não use ferramentas e não faça perguntas. Ruídos e conversas ao fundo devem ser ignorados. " +
+        "Depois que você responde, a conversa continua por alguns segundos e o usuário pode seguir sem repetir o nome. ";
     [TextArea(2, 6)]
     public string instrucaoExtra = "";
     // true quando o usuário disse "Zetta" e ela está atendendo; false em espera
     public bool acordada;
-    public float tempoAtivaSegundos = 6f;
+    public float tempoAtivaSegundos = 8f;   // modo conversa: depois de responder, sem precisar do nome
     float ultimaAtividade;
     string entradaTurno = "";
     bool novoTurnoEntrada = true;
     static readonly System.Text.RegularExpressions.Regex RegexAtivacao = new System.Text.RegularExpressions.Regex(
         @"^[\s\p{P}]*(z[eéê]+\s?t+[aáà]+|j[eéê]+\s?t+[aáà]+|zeda|seta|zeca|cheta|geta)\b", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+    // chamado pelo nome: primeira palavra da fala, sem pontuação/acentos/maiúsculas, inteira e isolada
+    static readonly System.Collections.Generic.HashSet<string> Chamados = new System.Collections.Generic.HashSet<string>
+        { "zetta", "zeta", "seta", "zera", "z", "ze", "zeda", "zeca", "jeta", "jetta", "cheta", "geta" };
+
+    static bool EhChamado(string fala)
+    {
+        if (string.IsNullOrEmpty(fala)) return false;
+        if (RegexAtivacao.IsMatch(fala)) return true;
+        var sb = new System.Text.StringBuilder();
+        bool comecou = false;
+        foreach (char c in fala.Normalize(System.Text.NormalizationForm.FormD))
+        {
+            var cat = System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c);
+            if (cat == System.Globalization.UnicodeCategory.NonSpacingMark) continue;
+            if (char.IsLetter(c)) { sb.Append(char.ToLowerInvariant(c)); comecou = true; }
+            else if (comecou) break;
+        }
+        return Chamados.Contains(sb.ToString());
+    }
+
+    // dica curta no rótulo de status embaixo do anel
+    string avisoTexto;
+    float avisoAte;
+    public void MostrarAviso(string t, float segundos) { avisoTexto = t; avisoAte = Time.time + segundos; }
+
+    // pinça sobre o anel: acorda sem precisar do nome
+    public void Acordar()
+    {
+        acordada = true;
+        ultimaAtividade = Time.time;
+        MostrarAviso("pode falar", 2f);
+    }
+
+    bool audioNoTurno;
     public float distancia = 1.2f;
     public float offsetAbaixo = 0.4f;
     public int tentativasReconexao = 3;
@@ -386,6 +422,7 @@ public class AssistenteVoz : MonoBehaviour
         { s = estadoMic; cor = new Color(1f, 0.4f, 0.3f); }
         else if (!pronto && !string.IsNullOrEmpty(ultimoErro))
         { s = "erro: " + (ultimoErro.Length > 34 ? ultimoErro.Substring(0, 34) : ultimoErro); cor = new Color(1f, 0.4f, 0.3f); }
+        else if (Time.time < avisoAte) { s = avisoTexto; cor = new Color(1f, 0.9f, 0.3f, 0.95f); }
         else s = estadoMic;
         if (s == statusMostrado) return;
         statusMostrado = s;
@@ -460,23 +497,26 @@ public class AssistenteVoz : MonoBehaviour
                 if (novoTurnoEntrada) { entradaTurno = ""; novoTurnoEntrada = false; }
                 entradaTurno += entrada;
                 ultimoOuvido = entradaTurno.Length > 60 ? entradaTurno.Substring(entradaTurno.Length - 60) : entradaTurno;
-                if (RegexAtivacao.IsMatch(entradaTurno))
+                if (EhChamado(entradaTurno))
                 {
                     acordada = true;
                     ultimaAtividade = Time.time;
                 }
-                else if (entradaTurno.Trim().Length >= 4) acordada = false;
                 processando = acordada;
                 inicioProcessando = Time.time;
             }
             // sem a palavra de ativação, qualquer áudio/texto do modelo é descartado
-            bool emEspera = (!acordada && entradaTurno.Trim().Length >= 4) || descartarSaida;
+            bool emEspera = descartarSaida;
             var partes = sc["modelTurn"]?["parts"] as JArray;
             if (partes != null && !emEspera)
                 foreach (var p in partes)
                 {
                     var dados = p["inlineData"]?["data"]?.ToString();
                     if (string.IsNullOrEmpty(dados)) continue;
+                    // a Gemini só responde se ela mesma detectou o chamado: vale como ativação
+                    audioNoTurno = true;
+                    acordada = true;
+                    ultimaAtividade = Time.time;
                     processando = false;
                     var taxa = TaxaSaida;
                     var mime = p["inlineData"]["mimeType"]?.ToString();
@@ -495,6 +535,8 @@ public class AssistenteVoz : MonoBehaviour
             {
                 if (entradaTurno.Trim().Length > 0)
                     Debug.Log("AssistenteVoz: ouvi [" + (acordada ? "Zetta reconhecida" : "sem a palavra Zetta") + "] \"" + Sanitizar(entradaTurno.Trim()) + "\"");
+                if (!acordada && !audioNoTurno && entradaTurno.Trim().Length >= 4) MostrarAviso("diga 'Zetta' antes", 2f);
+                audioNoTurno = false;
                 processando = false;
                 descartarSaida = false;
                 novoTurno = true;
@@ -511,11 +553,9 @@ public class AssistenteVoz : MonoBehaviour
             {
                 var nome = f["name"]?.ToString();
                 JObject resp;
-                bool espera = !acordada && entradaTurno.Trim().Length >= 4;
                 try
                 {
-                    resp = espera ? new JObject { ["result"] = "ignorado: sem a palavra de ativação Zetta" }
-                        : ferramentas.TryGetValue(nome, out var tratador) ? tratador(f["args"] as JObject ?? new JObject())
+                    resp = ferramentas.TryGetValue(nome, out var tratador) ? tratador(f["args"] as JObject ?? new JObject())
                         : aoChamarFuncao != null ? aoChamarFuncao(nome, f["args"] as JObject ?? new JObject()) : null;
                 }
                 catch (Exception e)
