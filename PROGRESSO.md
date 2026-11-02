@@ -428,3 +428,10 @@ Feito agora:
 - "Apague isso": mão (dedo a ≤15 cm do objeto) tem prioridade, depois olhar/apontar.
 - `AncorasHolo` ignora itens cujo tipo não tem fábrica (não dá para recriar).
 - Teste no editor: bola vermelha→esfera ok; cubo amarelo inexistente→erro+lista; por id ok; tudo pede confirmação e apaga. Mão/olhar reais: sem teste no Quest.
+
+### Tarefa 9 – Notas holográficas (feito, testado no editor; build de conferência das tarefas 8+9 OK, 0 erros)
+- `NotasHolo.cs` (no objeto do `ApagadorHolo`): ferramentas `anotar(texto)` e `gerenciar_notas(acao=ler|mostrar|apagar, assunto)`.
+- Cartão ciano claro 20x14 cm com texto escuro, pegável (XRGrabInteractable + `InteracaoMaos`), registrado como tipo "nota" (texto em `extra`) → âncora espacial, `Fabricas["nota"]` recria na reabertura, apagar por voz/olhar/lixeira.
+- Ao soltar (0,45 s depois), raios nas 6 direções (25 cm) procuram um `ARPlane`; se achar, o cartão desliza até a superfície (normal da parede, texto legível) e fica kinematic para a física não empurrá-lo.
+- "Ler" mostra também um painel "Minhas notas" e devolve os textos à Gemini; "mostrar" faz as notas pulsarem 5 s (`BrilhoProximidade.Destacar`).
+- Teste no editor: criar, ler, mostrar, apagar por assunto (inclusive "anotação da reunião" via apagar_objeto), grudar numa parede de teste (ARPlane falso). Sem teste no Quest: legibilidade do texto, planos reais, âncoras.

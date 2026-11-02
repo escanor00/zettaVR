@@ -49,6 +49,9 @@ public class BrilhoProximidade : MonoBehaviour
     float brilho;
     float proximaBusca;
 
+    float destaqueAte;
+    public void Destacar(float segundos) { destaqueAte = Time.time + segundos; }
+
     void Start() { Capturar(); }
 
     void Capturar()
@@ -70,7 +73,8 @@ public class BrilhoProximidade : MonoBehaviour
         if (Time.time >= proximaBusca) { proximaBusca = Time.time + 2f; Capturar(); }   // conteúdo que carrega depois
 
         float alvo = 0f;
-        if (grab != null && grab.isSelected) alvo = 1f;
+        if (Time.time < destaqueAte) alvo = 0.7f + 0.3f * Mathf.Sin(Time.time * 7f);   // "mostre minhas notas"
+        else if (grab != null && grab.isSelected) alvo = 1f;
         else
         {
             AtualizarPontas();
