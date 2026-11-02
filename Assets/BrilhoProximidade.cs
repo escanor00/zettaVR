@@ -97,8 +97,10 @@ public class BrilhoProximidade : MonoBehaviour
         {
             if (e.m == null) continue;
             if (e.m.color != e.aplicada) e.baseC = e.m.color;   // alguém mudou a cor: essa é a nova base
-            var c = Color.Lerp(e.baseC, Color.white, brilho * forca);
-            c.a = Mathf.Min(1f, e.baseC.a + brilho * 0.3f);
+            // mesma matiz e saturação: só o valor (brilho) sobe, nunca vira branco. Segurado (brilho 1) ≈ +20%.
+            Color.RGBToHSV(e.baseC, out float h, out float s, out float v);
+            var c = Color.HSVToRGB(h, s, Mathf.Min(1f, v * (1f + 0.2f * brilho)));
+            c.a = Mathf.Min(1f, e.baseC.a * (1f + 0.5f * brilho) + brilho * 0.1f);
             e.m.color = c;
             e.aplicada = e.m.color;
         }

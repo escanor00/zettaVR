@@ -442,3 +442,8 @@ Feito agora:
 - Ao soltar (0,45 s depois), raios nas 6 direções (25 cm) procuram um `ARPlane`; se achar, o cartão desliza até a superfície (normal da parede, texto legível) e fica kinematic para a física não empurrá-lo.
 - "Ler" mostra também um painel "Minhas notas" e devolve os textos à Gemini; "mostrar" faz as notas pulsarem 5 s (`BrilhoProximidade.Destacar`).
 - Teste no editor: criar, ler, mostrar, apagar por assunto (inclusive "anotação da reunião" via apagar_objeto), grudar numa parede de teste (ARPlane falso). Sem teste no Quest: legibilidade do texto, planos reais, âncoras.
+
+## RODADA 3 (pedido a9f4 nº 2) – registro por tarefa
+### R3-1 Cor ao pegar (feito; build 0 erros; sem teste no Quest)
+- Causa: `BrilhoProximidade` misturava a cor com BRANCO (`Color.Lerp(base, white, brilho*0,55)`); segurado (brilho=1) ficava 55% branco. O XRI/template não interfere (nenhum affordance nos objetos criados).
+- Correção: o brilho agora só sobe o valor (HSV) mantendo matiz/saturação: até +20% segurado (menos ao aproximar a mão) + leve aumento de opacidade; ao soltar volta à cor base exata. Vale para formas, modelos prontos, notas (todos usam o componente). GLB com shader próprio (sem `_Color`) não é tocado. Contorno ciano não foi adicionado (aumento de brilho basta pelo pedido "ou").
