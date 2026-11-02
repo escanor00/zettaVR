@@ -30,7 +30,8 @@ public class PainelInfo : MonoBehaviour
         "Para clima, notícias, resultados esportivos, cotações e outros assuntos atuais, use a busca do Google. " +
         "Depois de buscar, chame mostrar_painel com um título e de 1 a 4 linhas bem curtas e responda por voz em uma ou duas frases.";
     const string InstrucaoSemBusca =
-        "Você NÃO tem acesso a dados em tempo real (clima, notícias, cotações, placares): se pedirem isso, avise com educação " +
+        "Para clima use a ferramenta consultar_clima e para notícias use buscar_noticias (elas já mostram o painel). " +
+        "Você NÃO tem acesso a outros dados em tempo real (cotações, placares): se pedirem isso, avise com educação " +
         "que a busca ao vivo não está disponível e não invente números. Quando pedirem um resumo ou lista de conhecimento geral " +
         "para ver na tela, chame mostrar_painel com um título e de 1 a 4 linhas bem curtas e responda por voz em uma ou duas frases.";
 

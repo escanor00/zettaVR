@@ -227,3 +227,14 @@ Feito nesta fase:
 3. Dizer "Zetta, que horas são?": rótulo vai de "ouvindo" → "processando" → "falando" → "ouvindo".
 4. Enquanto ela fala, segurar a pinça ~1 s: ela cala.
 5. Dois toques no óculos e voltar: o anel volta e o mic volta a "ouvindo" em ~3 s.
+
+## Fase 2 — Personalidade e utilidades (concluída; falta validar por voz no óculos)
+Itens 1, 2, 3 e 5 já estavam prontos desde a fase anterior (F2-2, F2-3, F2-5 acima: palavra "Zetta", personalidade, anel/núcleo a 40% no canto inferior direito seguindo o olhar, timers).
+- **Item 4 (informação ao vivo)**: a busca do Google continua indisponível na cota grátis da Live API (`usarBuscaGoogle=false`). Em vez dela, `InfoAoVivo.cs` (objeto "InfoAoVivo" na cena) traz **clima** (Open-Meteo, sem chave) e **notícias** (Google News RSS, sem chave) como ferramentas `consultar_clima(cidade)` e `buscar_noticias(assunto)`. Elas mostram o painel temporário (`PainelInfo`) e devolvem os dados à Zetta, que resume por voz. Testado no editor com dados reais (São Paulo; "tecnologia"). Cotações e placares continuam sem fonte grátis: ela avisa que não tem.
+- **Item 6 (painéis em arco)**: menores (26×15 cm), fundo mais transparente (alfa 0,08) e 22 cm acima da linha do olhar, para não atrapalhar a visão da sala.
+### Testes no óculos — Fase 2
+1. "Zetta, qual o clima em Curitiba?": ela diz "um instante", aparece o painel à esquerda e ela resume por voz.
+2. "Zetta, notícias de tecnologia": painel com 4 manchetes e resumo falado.
+3. "Zetta, 2 minutos para o café" e depois outro timer com outro nome: dois contadores; ao fim ela avisa por voz.
+4. Falar sem dizer "Zetta": ela não responde (núcleo azul fraco).
+5. Os 4 painéis em arco devem ficar acima do olhar e discretos.

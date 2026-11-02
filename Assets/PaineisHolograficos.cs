@@ -11,6 +11,7 @@ public class PaineisHolograficos : MonoBehaviour
     public Vector2 tamanho = new Vector2(0.3f, 0.17f);
     public Color corContorno = new Color(0.2f, 0.95f, 1f, 1f);
     public Color corFundo = new Color(0.02f, 0.12f, 0.16f, 0.12f);
+    public float alturaExtra = 0.22f;   // acima da linha do olhar, para não atrapalhar a visão da sala
     public float atrasoInicial = 1.5f;
     public float intervaloEntrada = 0.25f;
 
@@ -61,7 +62,7 @@ public class PaineisHolograficos : MonoBehaviour
         for (int i = 0; i < paineis.Length; i++)
         {
             var dir = Quaternion.AngleAxis(angulos[i], Vector3.up) * frente;
-            var pos = cam.position + dir * distancia;
+            var pos = cam.position + dir * distancia + Vector3.up * alturaExtra;
             paineis[i] = CriarPainel(definicoes[i].titulo, pos, cam.position);
             paineis[i].conteudo = definicoes[i].texto;
         }
