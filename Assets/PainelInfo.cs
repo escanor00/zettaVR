@@ -63,6 +63,10 @@ public class PainelInfo : MonoBehaviour
         HoloUtil.CriarTexto(raiz, "Corpo", corpo.ToString(), new Vector3(0, -0.03f, -0.002f),
             new Vector2(tamanho.x - 0.04f, tamanho.y - 0.1f), 0.18f, Color.white, TMPro.TextAlignmentOptions.TopLeft);
 
+        // botão poke para fechar o painel
+        BotaoHolo.Criar(raiz, "X", new Vector3(tamanho.x * 0.5f - 0.03f, tamanho.y * 0.5f - 0.03f, 0f),
+            new Vector2(0.045f, 0.045f), () => { if (raiz != null) Destroy(raiz.gameObject); });
+
         painelAtual = raiz;
         StartCoroutine(Ciclo(raiz, duracao));
         return new JObject { ["result"] = "painel mostrado por " + duracao + " s" };

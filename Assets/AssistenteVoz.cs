@@ -57,6 +57,7 @@ public class AssistenteVoz : MonoBehaviour
     float tempoFala;
     TextMeshPro textoStatus;
     RectTransform alvoStatus;
+    BotaoHolo botaoParar;
     string statusMostrado;
     public bool Falando => falando;
 
@@ -377,6 +378,7 @@ public class AssistenteVoz : MonoBehaviour
     void AtualizarStatusVisivel()
     {
         if (textoStatus == null) return;
+        if (botaoParar != null && botaoParar.gameObject.activeSelf != falando) botaoParar.gameObject.SetActive(falando);
         string s;
         Color cor = new Color(0.2f, 0.9f, 1f, 0.8f);
         if (Application.internetReachability == NetworkReachability.NotReachable) { s = "sem internet"; cor = new Color(1f, 0.6f, 0.2f); }
@@ -673,6 +675,10 @@ public class AssistenteVoz : MonoBehaviour
         textoStatus.fontSize = 0.07f;
         textoStatus.color = new Color(0.2f, 0.9f, 1f, 0.8f);
         textoStatus.text = "";
+
+        // botão poke PARAR: aparece só enquanto a Zetta fala (o mic fica mudo nesse momento)
+        botaoParar = BotaoHolo.Criar(alvoStatus, "PARAR", new Vector3(0f, -0.06f, 0f), new Vector2(0.11f, 0.045f), Interromper);
+        botaoParar.gameObject.SetActive(false);
     }
 
     Vector3 AlvoStatus(Transform cam)

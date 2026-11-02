@@ -206,7 +206,7 @@ Relato: app abria em fundo azul (VR) sem a sala; ao ativar a visão do sistema (
 # NOITE AUTÔNOMA (Fases 0–8 do PLANO-ZETTA.md)
 
 ## Fase 0 — Preparação e segurança (concluída)
-- Backup em `C:\Users\luizg\My project - backup fase 0` (sem Library/Builds/Logs; foi feito antes de remover a chave, então a cena do backup ainda contém a chave — é só local, apague a pasta se quiser).
+- Backup em `C:/Users/luizg/My project - backup fase 0`: **INCOMPLETO** (a cópia foi encerrada pelo sistema por falta de memória; só tem arquivos soltos, sem Assets/ProjectSettings). O que protege o projeto é o **git** (commit por fase e tags `antes-fase-N`). Se quiser backup completo, apague essa pasta e copie o projeto sem a pasta Library, com o Unity fechado.
 - Git local iniciado (`main`), `.gitignore` de Unity + `Assets/Segredos/`. Commit inicial `Fase 0`; tag `antes-fase-1`.
 - A chave do Gemini estava na cena (2 componentes) e escrita no código de `TesteGemini.cs`. Agora vive só em `Assets/Segredos/ZettaSegredos.asset` (ScriptableObject `ZettaSegredos`, ignorado pelo git; também guarda `tokenGitHub`, `usuarioGitHub`, `tokenHuggingFace`). `AssistenteVoz` e `TesteGemini` leem de lá (campo `segredos`, já ligado na cena). Conferido: `git grep` não acha a chave.
 - Atenção: o APK leva o asset de segredos dentro (é inevitável para o app funcionar); não distribua o APK.
@@ -238,3 +238,16 @@ Itens 1, 2, 3 e 5 já estavam prontos desde a fase anterior (F2-2, F2-3, F2-5 ac
 3. "Zetta, 2 minutos para o café" e depois outro timer com outro nome: dois contadores; ao fim ela avisa por voz.
 4. Falar sem dizer "Zetta": ela não responde (núcleo azul fraco).
 5. Os 4 painéis em arco devem ficar acima do olhar e discretos.
+
+## Fase 3 — Mãos (concluída no código; FALTA VALIDAR NO ÓCULOS)
+**Decisão: não instalei o Meta Interaction SDK.** A documentação da Meta parte do `OVRCameraRig`/Meta XR Core SDK (plugin Oculus); usar isso aqui exigiria trocar o rig de câmera do AR Foundation que sustenta o passthrough, com risco alto e sem como testar de madrugada. O plano pede "um único sistema de mãos" e sem conflito com o XRI, então usei o que o template já traz e é compatível com Unity 6.6 + OpenXR: **XR Interaction Toolkit 3.6 + XR Hands** (mãos com `NearFarInteractor`, `PokeInteractor` e rastreamento de mãos já montados em "MR Interaction Setup"). Se quiser mesmo o ISDK da Meta, é uma migração à parte (decisão sua).
+- `InteracaoMaos.cs` (aplicado em `criar_objeto`, `mostrar_modelo` e `gerar_modelo_3d`): pegar de perto e à distância (Near-Far); **duas mãos** escalam e giram (`selectMode=Multiple` + `XRGeneralGrabTransformer`); `LimiteEscala` mantém o tamanho entre **5 cm e 2 m** enquanto segura (vale também após vários gestos); **arremesso** com a velocidade da mão (`throwOnDetach`, amortecimento 1,2 para ir parando no ar). Arremesso acima de ~2,2 m/s continua APAGANDO o objeto (Fase 2/F2-12), então arremesse devagar para só lançar.
+- `BotaoHolo.cs`: botão **poke** holográfico (detecta a ponta do indicador pelo XR Hands; afunda até 12 mm e brilha; dispara ao atravessar a superfície; rearma ao afastar). Usado em: botão **X** no canto do painel de informação e botão **PARAR** embaixo do anel (aparece só enquanto a Zetta fala e interrompe a fala).
+- Excluir objetos (item 5) já estava pronto: voz `apagar_objeto` (descrição / "isso" / "tudo" com confirmação), arremesso rápido, lixeira holográfica à direita perto do chão, animação de desmontar em ~0,5 s e remoção da âncora.
+### Testes no óculos — Fase 3
+1. "Zetta, crie um cubo azul": pegar com uma mão, de perto e depois apontando de longe com pinça.
+2. Pegar com as duas mãos e afastar/aproximar: o cubo escala; nunca passa de 2 m nem fica menor que 5 cm. Girar as mãos gira o cubo.
+3. Arremessar devagar: voa e vai parando. Arremessar forte: some em grade de linhas.
+4. "Zetta, notícias de tecnologia": tocar no X do painel com o indicador fecha o painel.
+5. Pedir algo longo; enquanto ela fala aparece PARAR embaixo do anel: tocar nele calar a fala.
+6. "Zetta, apague o cubo azul" / "apague isso" (olhando) / "apague tudo" (pede confirmação).

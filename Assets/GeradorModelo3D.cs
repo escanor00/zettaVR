@@ -385,8 +385,8 @@ public class GeradorModelo3D : MonoBehaviour
         var box = raiz.AddComponent<BoxCollider>();
         box.center = raiz.transform.InverseTransformPoint(b.center);
         box.size = b.size;
-        var grab = raiz.AddComponent<XRGrabInteractable>();
-        grab.throwOnDetach = false;
+        raiz.AddComponent<XRGrabInteractable>();
+        InteracaoMaos.Aplicar(raiz);
 
         // entrada: uma caixa de grade se desfaz em volta do modelo enquanto ele "estala" para o tamanho final
         var alvoEscala = conteudo.localScale;

@@ -102,8 +102,8 @@ public class CriadorHolograma : MonoBehaviour
         rb.useGravity = false;
         rb.linearDamping = 3f;
         rb.angularDamping = 3f;
-        var grab = go.AddComponent<XRGrabInteractable>();
-        grab.throwOnDetach = false;
+        go.AddComponent<XRGrabInteractable>();
+        InteracaoMaos.Aplicar(go);
 
 
         HoloRegistro.Adicionar(go, forma, args.Value<string>("cor") ?? "ciano", forma + " " + (args.Value<string>("cor") ?? ""), "primitiva", tamanho);

@@ -91,8 +91,8 @@ public class ModelosProntos : MonoBehaviour
         rb.useGravity = false;
         rb.linearDamping = 3f;
         rb.angularDamping = 3f;
-        var grab = raiz.AddComponent<XRGrabInteractable>();
-        grab.throwOnDetach = false;
+        raiz.AddComponent<XRGrabInteractable>();
+        InteracaoMaos.Aplicar(raiz);
 
         HoloRegistro.Adicionar(raiz, nome, "", nome.Replace('_', ' '), "modelo", 0.5f, nome);
         modelos.Add(raiz);
