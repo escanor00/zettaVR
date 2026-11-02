@@ -1,0 +1,112 @@
+using System.Collections;
+using TMPro;
+using UnityEngine;
+
+// Helpers de visual holográfico compartilhados (painéis, texto, animações).
+public static class HoloUtil
+{
+    public static readonly Color Ciano = new Color(0.2f, 0.95f, 1f, 1f);
+    public static readonly Color FundoPainel = new Color(0.02f, 0.12f, 0.16f, 0.18f);
+
+    static Material matSprite;
+    public static Material NovoMaterialSprite(Color cor)
+    {
+        if (matSprite == null) matSprite = new Material(Shader.Find("Sprites/Default"));
+        var m = new Material(matSprite);
+        m.color = cor;
+        return m;
+    }
+
+    public static TextMeshPro CriarTexto(Transform pai, string nome, string conteudo, Vector3 posLocal,
+        Vector2 caixa, float tamanhoMax, Color cor, TextAlignmentOptions alinhamento = TextAlignmentOptions.Center)
+    {
+        var go = new GameObject(nome);
+        go.transform.SetParent(pai, false);
+        go.transform.localPosition = posLocal;
+        var t = go.AddComponent<TextMeshPro>();
+        t.rectTransform.sizeDelta = caixa;
+        t.alignment = alinhamento;
+        t.color = cor;
+        t.textWrappingMode = TextWrappingModes.Normal;
+        t.overflowMode = TextOverflowModes.Truncate;
+        t.enableAutoSizing = true;
+        t.fontSizeMin = 0.03f;
+        t.fontSizeMax = tamanhoMax;
+        t.text = conteudo;
+        return t;
+    }
+
+    // Painel fino: fundo quase transparente + contorno ciano. Origem no centro, olhando para +Z.
+    public static Transform CriarPainel(Transform pai, string nome, Vector2 tamanho)
+    {
+        var raiz = new GameObject(nome).transform;
+        raiz.SetParent(pai, false);
+
+        var fundo = GameObject.CreatePrimitive(PrimitiveType.Quad);
+        fundo.name = "Fundo";
+        Object.Destroy(fundo.GetComponent<Collider>());
+        fundo.transform.SetParent(raiz, false);
+        fundo.transform.localScale = new Vector3(tamanho.x, tamanho.y, 1f);
+        fundo.GetComponent<Renderer>().material = NovoMaterialSprite(FundoPainel);
+
+        var contorno = new GameObject("Contorno");
+        contorno.transform.SetParent(raiz, false);
+        contorno.transform.localPosition = new Vector3(0, 0, -0.001f);
+        var lr = contorno.AddComponent<LineRenderer>();
+        lr.useWorldSpace = false;
+        lr.loop = true;
+        lr.material = NovoMaterialSprite(Ciano);
+        lr.startColor = lr.endColor = Ciano;
+        lr.widthMultiplier = 0.003f;
+        float hx = tamanho.x * 0.5f, hy = tamanho.y * 0.5f;
+        lr.positionCount = 4;
+        lr.SetPositions(new[] { new Vector3(-hx, -hy, 0), new Vector3(-hx, hy, 0), new Vector3(hx, hy, 0), new Vector3(hx, -hy, 0) });
+        return raiz;
+    }
+
+    // Ponto à frente da câmera, em coordenadas locais da vista (x direita, y cima, z frente), com yaw apenas.
+    public static Vector3 PontoNaVista(Vector3 local)
+    {
+        var cam = Camera.main.transform;
+        return cam.position + Quaternion.Euler(0f, cam.eulerAngles.y, 0f) * local;
+    }
+
+    public static Quaternion OlharParaUsuario(Vector3 pos)
+    {
+        var cam = Camera.main.transform;
+        var d = Vector3.ProjectOnPlane(pos - cam.position, Vector3.up);
+        if (d.sqrMagnitude < 0.0001f) d = cam.forward;
+        return Quaternion.LookRotation(d, Vector3.up);
+    }
+
+    // multiplica o alfa de todos os renderers e textos sob 'raiz'
+    public static void DefinirAlfa(Transform raiz, float a)
+    {
+        foreach (var r in raiz.GetComponentsInChildren<Renderer>(true))
+        {
+            if (r is TextMeshPro || r.GetComponent<TextMeshPro>() != null) continue;
+            var m = r.material;
+            if (m.HasProperty("_Color")) { var c = m.color; if (!baseAlfa.ContainsKey(m)) baseAlfa[m] = c.a; c.a = baseAlfa[m] * a; m.color = c; }
+        }
+        foreach (var t in raiz.GetComponentsInChildren<TextMeshPro>(true))
+        {
+            var c = t.color; c.a = a; t.color = c;
+        }
+    }
+    static readonly System.Collections.Generic.Dictionary<Material, float> baseAlfa = new System.Collections.Generic.Dictionary<Material, float>();
+
+    public static IEnumerator Surgir(Transform alvo, float atraso = 0f, float duracao = 0.5f)
+    {
+        alvo.localScale = Vector3.zero;
+        if (atraso > 0f) yield return new WaitForSeconds(atraso);
+        for (float t = 0; t < duracao; t += Time.deltaTime)
+        {
+            float x = t / duracao;
+            const float c1 = 1.70158f, c3 = c1 + 1f;
+            float e = 1f + c3 * Mathf.Pow(x - 1f, 3f) + c1 * Mathf.Pow(x - 1f, 2f);
+            alvo.localScale = new Vector3(e, Mathf.Clamp01(x * 2f) * e, 1f);
+            yield return null;
+        }
+        alvo.localScale = Vector3.one;
+    }
+}

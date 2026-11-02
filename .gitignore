@@ -1,0 +1,37 @@
+# Unity
+/[Ll]ibrary/
+/[Tt]emp/
+/[Oo]bj/
+/[Bb]uild/
+/[Bb]uilds/
+/[Ll]ogs/
+/[Uu]ser[Ss]ettings/
+/[Mm]emoryCaptures/
+/[Rr]ecordings/
+/Backup/
+*.log
+UpgradeLog*.htm
+UpgradeLog*.XML
+
+# IDE / projetos gerados
+.vs/
+.vscode/
+.idea/
+*.csproj
+*.sln
+*.slnx
+*.suo
+*.user
+
+# Android / APK
+*.apk
+*.aab
+*.keystore
+*.jks
+*.unitypackage
+
+# Segredos da Zetta (chaves e tokens) - nunca versionar
+/Assets/Segredos/
+/Assets/Segredos.meta
+ZettaSegredos.asset
+ZettaSegredos.asset.meta

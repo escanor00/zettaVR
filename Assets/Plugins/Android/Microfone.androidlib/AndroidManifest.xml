@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.projeto.microfone">
+    <!-- Necessária para o AssistenteVoz (Microphone) no Quest -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-feature android:name="android.hardware.microphone" android:required="false" />
+    <!-- Passthrough Camera API (Quest 3, Horizon OS v74+): foto do que o usuário olha -->
+    <uses-permission android:name="horizonos.permission.HEADSET_CAMERA" />
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+    <!-- Passthrough dentro do app e sem exigir limite (boundary) -->
+    <uses-feature android:name="com.oculus.feature.PASSTHROUGH" android:required="true" />
+    <uses-feature android:name="com.oculus.feature.BOUNDARYLESS_APP" android:required="true" />
+</manifest>
