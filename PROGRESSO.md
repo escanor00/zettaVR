@@ -1,5 +1,24 @@
 # PROGRESSO
 
+# 🌙 RESUMO DA RODADA 4 – compila; build de conferência 0 erros; NADA instalado no Quest
+- **Tarefa 1 (esfera da Zetta) feita.** Tarefas 2–6 do pedido já estavam concluídas na Rodada 3 (cor ao pegar, visão preta, notas, regra de limites, 3D de ponta a ponta) e foram puladas; ver o bloco "RODADA 3" abaixo. A miniatura da foto (tarefa 3a) agora aparece ao lado da nova esfera (usa a posição do `AnelHolografico`).
+- **Esfera:** `EsferaZetta.cs` + shader `Resources/EsferaAditiva.shader`, criada pelo `AnelHolografico` (que continua cuidando de posição/seguir o olhar; `NucleoEnergia` ficou no projeto, desligado).
+  - 10 anéis/arcos (contínuos, tracejados, arcos em degradê) em eixos e velocidades próprios, 56 fragmentos/traços de dados piscando, 28 faíscas com rastro de 3 pontos nas órbitas, núcleo em espiral (48 pontos) + brilho central. Gradiente núcleo quase branco-dourado → borda laranja, blend aditivo.
+  - Estados (do `AssistenteVoz`): espera = giro lento e brilho fraco; ouvindo (mic > 0,04) = anéis encolhem ~28%; processando (até 6 s após a fala do usuário) = giro 3×; falando = pulso pelo `volumeSaida` + rajada de faíscas nos picos; erro (`ultimoErro` novo) = um pisca vermelho de 0,9 s.
+  - Cor: `mudar_cor_esfera` ("mude sua cor para dourado/ciano/verde/vermelho/roxo", também azul/laranja/rosa/branco), salva em PlayerPrefs `zetta_cor_esfera`, transição suave.
+  - Desempenho: 1 material compartilhado com instancing, 3 malhas de anel compartilhadas, 189 quads no total (<300), sem pós-processamento; CPU medida no editor: **0,075 ms/quadro** (log `EsferaZetta: CPU média…`). Custo de GPU/FPS no Quest: não medido (precisa do óculos; OVR Metrics).
+  - Verificado no editor por captura de tela (âmbar e roxo). Passthrough: o shader usa `Blend SrcAlpha One, One One` (alfa acumula para o compositor); a aparência real sobre a sala só se vê no Quest.
+  - Texto de status continua embaixo da esfera e a resposta falada à esquerda (como antes).
+
+## Testes no óculos, em ordem (instale: `adb install -r Builds/JarvisMR.apk`)
+1. Abrir o app: esfera pequena dourada no canto inferior direito, giro lento (espera). Ela deve ser legível sobre a sala clara e escura; se sumir sobre fundo claro, aumentar `_Brilho`/alfa.
+2. "Zetta, olá": brilho sobe; falar perto dela e ver os anéis encolherem ("ouvindo"), depois girar rápido ("processando"), depois pulsar com a voz e soltar faíscas.
+3. Provocar um erro (tirar o Wi‑Fi): um pisca vermelho.
+4. "Zetta, mude sua cor para roxo/verde/ciano"; fechar e reabrir: a cor continua.
+5. Medir FPS (OVR Metrics) com a esfera ativa; se cair, reduzir `NFaiscas`/`NEspiral`.
+6. Depois, a lista da Rodada 3 abaixo (cor ao pegar, "o que você vê?", notas, 3D).
+
+
 # 🌙 RESUMO DA RODADA 3 (pedido a9f4 nº 2) – tudo compila; builds de conferência 0 erros; NADA instalado no Quest
 1. **Cor ao pegar:** causa = `BrilhoProximidade` misturava com branco; agora só sobe o brilho (até +20%) na mesma cor.
 2. **Visão preta:** `CameraOlhos` com aquecimento, teste de brilho, Blit+ReadPixels, tenta todas as câmeras, salva `ultima_foto.jpg` e mostra miniatura por 5 s.
@@ -483,3 +502,7 @@ Feito agora:
 - Falha achada: o GLB do TRELLIS.2 tem texturas WebP (`EXT_texture_webp`, exigida) e o glTFast não decodifica WebP sem plugin nativo ("não conseguiu ler o arquivo GLB").
 - Correção: `GeradorModelo3D.AdaptarGlbSemWebP` reescreve o GLB (remove texturas e a extensão exigida, mantém geometria) e usa como cor base a cor dominante da imagem de entrada (`CorDominante`; cinza claro se não achar). Resultado: o modelo abre, com cor única, sem textura. Logs `[tempo]` por etapa ficam no Console.
 - Para ter textura de verdade: compilar libwebp como plugin nativo `webp-unity` (Android arm64 + Windows) e registrar o `WebpTextureAddon` do glTFast (exemplo em `Library/PackageCache/com.unity.cloud.gltfast*/Runtime/DocExamples`), ou um pacote Unity de WebP. Não feito: precisa baixar binários nativos e validar no Quest.
+
+## RODADA 4 – R4-1 Esfera da Zetta (feito; build 0 erros)
+- Ver o resumo no topo deste arquivo. Arquivos: `Assets/EsferaZetta.cs`, `Assets/Resources/EsferaAditiva.shader`, `Assets/AnelHolografico.cs` (cria a esfera e desliga o `NucleoEnergia`).
+- Tarefas 2–6 do pedido da Rodada 4: já concluídas na Rodada 3 (R3-1 a R3-5), puladas conforme a regra.

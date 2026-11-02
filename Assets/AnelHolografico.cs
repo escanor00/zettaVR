@@ -7,6 +7,7 @@ public class AnelHolografico : MonoBehaviour
     // canto inferior direito da visão (direita, cima), em metros a 'distancia'
     public Vector2 deslocamento = new Vector2(0.36f, -0.24f);
     public float escala = 0.4f;
+    public float raioEsfera = 0.3f;   // raio da esfera (x escala = ~12 cm)
 
     Transform[] aneis;
     float[] velocidades = { 20f, -35f, 50f, -15f };
@@ -18,11 +19,14 @@ public class AnelHolografico : MonoBehaviour
         transform.position = AlvoPosicao(cam);
         transform.rotation = Quaternion.LookRotation(transform.position - cam.position);
 
-        aneis = new Transform[4];
-        aneis[0] = CriarAnel(0.15f, 64, false, 0.004f);
-        aneis[1] = CriarAnel(0.20f, 48, true, 0.003f);
-        aneis[2] = CriarAnel(0.26f, 90, true, 0.002f);
-        aneis[3] = CriarAnel(0.30f, 64, false, 0.006f);
+        // a esfera (EsferaZetta) substitui os anéis simples e o núcleo antigo (NucleoEnergia fica no projeto, desligado)
+        var nucleo = FindAnyObjectByType<NucleoEnergia>();
+        if (nucleo != null) { nucleo.enabled = false; foreach (var r in nucleo.GetComponentsInChildren<Renderer>()) r.enabled = false; }
+        var esfera = new GameObject("EsferaZetta");
+        esfera.transform.SetParent(transform, false);
+        esfera.transform.localScale = Vector3.one * raioEsfera;
+        esfera.AddComponent<EsferaZetta>();
+        aneis = new Transform[0];
 
         transform.localScale = Vector3.zero; // começa invisível
     }
@@ -79,6 +83,6 @@ public class AnelHolografico : MonoBehaviour
 
         // Pulso de brilho
         float pulso = 0.85f + Mathf.Sin(Time.time * 3f) * 0.15f;
-        aneis[0].localScale = Vector3.one * pulso;
+        if (aneis.Length > 0) aneis[0].localScale = Vector3.one * pulso;
     }
 }
