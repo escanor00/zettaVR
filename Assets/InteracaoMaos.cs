@@ -39,8 +39,8 @@ public static class InteracaoMaos
         lim.Medir();
     }
 
-    // maior dimensão do objeto no mundo
-    public static float MaiorDimensao(GameObject go)
+    // caixa do objeto no mundo (renderers visíveis; se não houver, colisores)
+    public static bool Limites(GameObject go, out Bounds limites)
     {
         Bounds? b = null;
         foreach (var r in go.GetComponentsInChildren<Renderer>())
@@ -53,8 +53,15 @@ public static class InteracaoMaos
             var c = go.GetComponentInChildren<Collider>();
             if (c != null) b = c.bounds;
         }
-        if (b == null) return 0.3f;
-        var s = b.Value.size;
+        limites = b ?? new Bounds(go.transform.position, Vector3.one * 0.3f);
+        return b != null;
+    }
+
+    // maior dimensão do objeto no mundo
+    public static float MaiorDimensao(GameObject go)
+    {
+        if (!Limites(go, out var b)) return 0.3f;
+        var s = b.size;
         return Mathf.Max(0.001f, Mathf.Max(s.x, Mathf.Max(s.y, s.z)));
     }
 }

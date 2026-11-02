@@ -89,6 +89,9 @@ public class MesaHolografica : MonoBehaviour
         disco.name = "Disco";
         Destroy(disco.GetComponent<Collider>());
         disco.transform.SetParent(raizGo.transform, false);
+        // colisor fino para os objetos apoiarem quando a gravidade estiver ligada ("Zetta, solte")
+        var caixa = disco.AddComponent<BoxCollider>();
+        caixa.size = new Vector3(1f, 6f, 1f);   // escala do disco: raio*2 x 0,004 x raio*2 => ~2,4 cm de espessura
         disco.transform.localScale = new Vector3(raio * 2f, 0.004f, raio * 2f);
         CriadorHolograma.AplicarVisual(disco, HoloUtil.Ciano, new Vector2(24, 1), 1f, null, 0.28f);
 
@@ -150,8 +153,60 @@ public class MesaHolografica : MonoBehaviour
     // objetos criados enquanto a mesa está ativa nascem no centro e sobem
     void AoCriarObjeto(GameObject go)
     {
-        if (plataforma == null || go == null || HoloRegistro.Carregando) return;
+        if (go == null) return;
+        // encaixe: objeto que o usuário solta perto da mesa se acomoda em cima dela
+        StartCoroutine(AssinarSoltar(go));
+        if (plataforma == null || HoloRegistro.Carregando) return;
         StartCoroutine(Subir(go));
+    }
+
+    // alguns criadores (modelos 3D) adicionam o XRGrabInteractable um pouco depois do registro
+    IEnumerator AssinarSoltar(GameObject go)
+    {
+        for (int i = 0; i < 40 && go != null; i++)
+        {
+            var grab = go.GetComponent<UnityEngine.XR.Interaction.Toolkit.Interactables.XRGrabInteractable>();
+            if (grab != null)
+            {
+                grab.selectExited.AddListener(_ => { if (!grab.isSelected) StartCoroutine(AposSoltar(go)); });
+                yield break;
+            }
+            yield return new WaitForSeconds(0.25f);
+        }
+    }
+
+    IEnumerator AposSoltar(GameObject go)
+    {
+        yield return new WaitForSeconds(0.45f);   // deixa o arremesso/queda assentar
+        if (go == null || plataforma == null) yield break;
+        var rb = go.GetComponent<Rigidbody>();
+        if (rb != null && (rb.useGravity || rb.linearVelocity.sqrMagnitude > 0.09f)) yield break;
+        var grab = go.GetComponent<UnityEngine.XR.Interaction.Toolkit.Interactables.XRGrabInteractable>();
+        if (grab != null && grab.isSelected) yield break;
+
+        var c = plataforma.transform.position;
+        var d = go.transform.position - c;
+        var horizontal = new Vector2(d.x, d.z);
+        if (horizontal.magnitude > raio * 1.15f || d.y < -0.05f || d.y > 0.6f) yield break;
+        if (horizontal.magnitude > raio * 0.75f) horizontal = horizontal.normalized * raio * 0.75f;
+
+        // pousa com a base do objeto sobre a superfície do disco
+        float baixo = 0.05f;
+        if (InteracaoMaos.Limites(go, out var b)) baixo = go.transform.position.y - b.min.y;
+        var fim = new Vector3(c.x + horizontal.x, c.y + 0.012f + baixo, c.z + horizontal.y);
+        var inicio = go.transform.position;
+        bool eraCinematico = rb != null && rb.isKinematic;
+        if (rb != null) { rb.linearVelocity = Vector3.zero; rb.angularVelocity = Vector3.zero; rb.isKinematic = true; }
+        const float duracao = 0.35f;
+        for (float t = 0; t < duracao && go != null; t += Time.deltaTime)
+        {
+            float x = t / duracao;
+            go.transform.position = Vector3.Lerp(inicio, fim, 1f - Mathf.Pow(1f - x, 3f));
+            yield return null;
+        }
+        if (go == null) yield break;
+        go.transform.position = fim;
+        if (rb != null) rb.isKinematic = eraCinematico;
     }
 
     IEnumerator Subir(GameObject go)

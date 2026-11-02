@@ -251,3 +251,17 @@ Itens 1, 2, 3 e 5 já estavam prontos desde a fase anterior (F2-2, F2-3, F2-5 ac
 4. "Zetta, notícias de tecnologia": tocar no X do painel com o indicador fecha o painel.
 5. Pedir algo longo; enquanto ela fala aparece PARAR embaixo do anel: tocar nele calar a fala.
 6. "Zetta, apague o cubo azul" / "apague isso" (olhando) / "apague tudo" (pede confirmação).
+
+## Fase 4 — A sala como palco (concluída; planos/mesa/âncoras reais só no óculos)
+Itens já prontos desde a fase anterior: detecção de planos (AR Foundation, `SalaAR`: mesa, chão, paredes), gravidade por voz (`fisica_objetos`: "solte" faz cair e quicar nas superfícies reais, "flutue" volta a flutuar), mesa holográfica (`controlar_mesa`: plataforma com 3 anéis girando; objetos criados com ela ativa nascem do centro subindo) e âncoras persistentes (`AncorasHolo`: salva em `HologramasAncorados.json` + âncoras Meta e recria ao abrir o app).
+Feito agora:
+- **Encaixe (item 4)**: ao soltar um objeto perto da mesa holográfica (até 1,15× o raio, de 5 cm abaixo a 60 cm acima) e com o objeto quase parado, ele desliza em ~0,35 s e pousa com a base sobre o disco (testado no editor: base exatamente na superfície). Não acomoda se a gravidade estiver ligada (aí a física faz o trabalho). Vale para `criar_objeto`, `mostrar_modelo` e modelos 3D.
+- O disco da mesa ganhou um colisor fino para os objetos apoiarem quando a gravidade está ligada.
+- Decisão: continuei com o **AR Foundation (planos)** em vez do MRUK; é o que já funciona neste projeto e não exige instalar mais um SDK.
+### Testes no óculos — Fase 4
+1. Olhar para a sala por ~10 s (o Quest precisa ter feito o escaneamento da sala em Configurações > Espaço). "Zetta, ative a mesa": a plataforma aparece na mesa real (ou a 1 m à frente se não achar mesa).
+2. "Zetta, crie uma esfera verde": nasce do centro e sobe.
+3. Pegar a esfera e soltar sobre o disco: ela desliza e pousa em cima.
+4. "Zetta, solte": objetos caem e quicam na mesa/chão reais. "Zetta, flutue" volta ao normal.
+5. Deixar 2 objetos em lugares diferentes, fechar o app e abrir de novo: reaparecem no mesmo lugar (âncoras).
+6. "Zetta, desative a mesa": a plataforma some.
