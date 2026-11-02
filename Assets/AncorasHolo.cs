@@ -210,6 +210,7 @@ public class AncorasHolo : MonoBehaviour
         e.reg.cor = it.cor;
         e.reg.tamanho = it.tamanho;
         e.reg.forma = it.forma;
+        e.reg.extra = it.extra;
         e.posSalva = new Vector3(float.NaN, 0, 0);
     }
 
