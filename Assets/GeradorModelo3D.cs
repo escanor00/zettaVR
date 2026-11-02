@@ -47,6 +47,8 @@ public class GeradorModelo3D : MonoBehaviour
 
     AssistenteVoz voz;
     GradioClient clienteTrellis;
+    string TokenHF => voz != null && voz.segredos != null ? voz.segredos.tokenHuggingFace : null;
+    public string ultimaFalha = "";   // "etapa: motivo" da última geração que falhou (aparece nos painéis)
 
     void Awake()
     {
@@ -76,7 +78,8 @@ public class GeradorModelo3D : MonoBehaviour
         string etapa = "preparando";
         string erro = null;
         byte[] imagem = null, glb = null;
-        clienteTrellis = new GradioClient(espacoTrellis);
+        string etapaFalha = null;
+        clienteTrellis = new GradioClient(espacoTrellis, TokenHF);
         GradioClient clienteAtual = clienteTrellis;
         voz?.Falar("começou a gerar o modelo 3D de " + nome + "; avise em uma frase curta que leva de um a três minutos.");
 
@@ -89,16 +92,21 @@ public class GeradorModelo3D : MonoBehaviour
             etapa = "fotografando";
             string e1 = null;
             yield return CapturarFoto(b => imagem = b, m => e1 = m);
-            if (imagem == null) erro = e1 ?? "não consegui usar a câmera";
+            if (imagem == null) { erro = e1 ?? "não consegui usar a câmera"; etapaFalha = "foto da câmera"; }
         }
         else
         {
             etapa = "criando a imagem";
-            var cImg = new GradioClient(espacoImagem);
+            var cImg = new GradioClient(espacoImagem, TokenHF);
             clienteAtual = cImg;
             var t = GerarImagem(cImg, nome);
             while (!t.IsCompleted) yield return null;
-            if (t.IsFaulted) Debug.LogWarning("GeradorModelo3D: imagem falhou: " + t.Exception.GetBaseException().Message);
+            if (t.IsFaulted)
+            {
+                erro = t.Exception.GetBaseException().Message;
+                etapaFalha = "geração da imagem (FLUX.1-schnell)";
+                Debug.LogWarning("GeradorModelo3D: [" + etapaFalha + "] " + erro);
+            }
             else imagem = t.Result;
             clienteAtual = clienteTrellis;
         }
@@ -109,7 +117,12 @@ public class GeradorModelo3D : MonoBehaviour
             etapa = "TRELLIS.2: modelando";
             var t = TrellisParaGlb(clienteTrellis, imagem);
             while (!t.IsCompleted) yield return null;
-            if (t.IsFaulted) erro = t.Exception.GetBaseException().Message;
+            if (t.IsFaulted)
+            {
+                erro = t.Exception.GetBaseException().Message;
+                etapaFalha = "TRELLIS.2";
+                Debug.LogWarning("GeradorModelo3D: [" + etapaFalha + "] " + erro);
+            }
             else glb = t.Result;
         }
 
@@ -117,12 +130,17 @@ public class GeradorModelo3D : MonoBehaviour
         if (glb == null && origem == "descricao")
         {
             etapa = "plano B: Shap-E (texto → 3D)";
-            var cShap = new GradioClient(espacoShapE);
+            var cShap = new GradioClient(espacoShapE, TokenHF);
             clienteAtual = cShap;
             var t = ShapEParaGlb(cShap, nome);
             while (!t.IsCompleted) yield return null;
-            if (t.IsFaulted) erro = (erro != null ? erro + " | " : "") + t.Exception.GetBaseException().Message;
-            else { glb = t.Result; erro = null; }
+            if (t.IsFaulted)
+            {
+                string e2 = t.Exception.GetBaseException().Message;
+                Debug.LogWarning("GeradorModelo3D: [Shap-E] " + e2);
+                if (erro == null) { erro = e2; etapaFalha = "Shap-E (plano B)"; }   // mantém o erro da etapa principal
+            }
+            else { glb = t.Result; erro = null; etapaFalha = null; }
         }
 
         StopCoroutine(relogio);
@@ -133,10 +151,7 @@ public class GeradorModelo3D : MonoBehaviour
         if (glb == null)
         {
             ocupado = false;
-            Debug.LogWarning("GeradorModelo3D: falhou: " + erro);
-            bool fila = erro != null && (erro.Contains("quota") || erro.Contains("GPU") || erro.Contains("queue") || erro.Contains("429") || erro.Contains("503"));
-            voz?.Falar("a geração do modelo 3D de " + nome + " falhou" + (fila ? " porque a fila ou a cota do serviço gratuito está cheia" : "")
-                + ". Avise o usuário em uma frase e sugira tentar de novo mais tarde.");
+            ReportarFalha(nome, etapaFalha ?? "geração", erro ?? "erro desconhecido", clienteTrellis.UsaToken);
             yield break;
         }
 
@@ -150,6 +165,59 @@ public class GeradorModelo3D : MonoBehaviour
         voz?.Falar("o modelo 3D de " + nome + " ficou pronto depois de " + Mathf.RoundToInt(Time.time - inicio) + " segundos. Avise o usuário em uma frase curta e animada.");
     }
 
+    // ------------------------------------------------------------------ falhas explicadas
+    // Mostra a etapa e o erro (painel + rótulo do anel + log) e faz a Zetta explicar por voz em português.
+    void ReportarFalha(string nome, string etapa, string erro, bool comToken)
+    {
+        string baixo = (erro ?? "").ToLowerInvariant();
+        string causa, dica;
+        if (baixo.Contains("zerogpu") || baixo.Contains("quota") || baixo.Contains("exceeded"))
+        {
+            causa = "a cota gratuita de GPU do Hugging Face acabou";
+            dica = comToken ? "Mesmo com o token a cota diária esgotou; sugira tentar mais tarde ou amanhã."
+                            : "Sem token a cota anônima é pequena; diga que o usuário pode criar uma conta grátis no Hugging Face e colocar o token no ZettaSegredos para ter mais cota. Também pode tentar mais tarde.";
+        }
+        else if (baixo.Contains("endpoint não existe") || baixo.Contains("http 404"))
+        {
+            causa = "o endereço ou a interface do serviço mudou (endpoint não encontrado)";
+            dica = "Diga que o serviço gratuito foi alterado e precisa de uma atualização do app.";
+        }
+        else if (baixo.Contains("download"))
+        {
+            causa = "o modelo foi criado mas o download falhou";
+            dica = "Sugira tentar de novo e conferir a internet.";
+        }
+        else if (baixo.Contains("http 503") || baixo.Contains("http 502") || baixo.Contains("http 429") || baixo.Contains("sleeping") || baixo.Contains("building") || baixo.Contains("queue") || baixo.Contains("capacity"))
+        {
+            causa = "o serviço gratuito está lotado ou fora do ar agora";
+            dica = "Sugira tentar de novo daqui a alguns minutos.";
+        }
+        else if (etapa == "foto da câmera")
+        {
+            causa = "não consegui usar a câmera do óculos";
+            dica = "Peça para conferir a permissão de câmeras do app nas configurações do Quest.";
+        }
+        else
+        {
+            causa = "deu um erro inesperado";
+            dica = "Diga que o detalhe técnico aparece no painel e sugira tentar de novo.";
+        }
+
+        string curto = erro.Length > 140 ? erro.Substring(0, 140) : erro;
+        ultimaFalha = etapa + ": " + curto;
+        Debug.LogWarning("GeradorModelo3D: falhou em [" + etapa + "]: " + curto);
+        voz?.MostrarAviso("3D falhou: " + etapa, 8f);
+        var painel = FindAnyObjectByType<PainelInfo>();
+        if (painel != null)
+            painel.Mostrar(new JObject
+            {
+                ["titulo"] = "Falha no modelo 3D",
+                ["linhas"] = new JArray("Etapa: " + etapa, curto),
+                ["duracao"] = 30
+            });
+        voz?.Falar("a geração do modelo 3D de " + nome + " falhou na etapa " + etapa + ": " + causa + ". " + dica + " Explique em até duas frases simples, sem termos técnicos.");
+    }
+
     // ------------------------------------------------------------------ rede
     async Task<byte[]> GerarImagem(GradioClient c, string desc)
     {
@@ -160,19 +228,30 @@ public class GeradorModelo3D : MonoBehaviour
 
     async Task<byte[]> TrellisParaGlb(GradioClient c, byte[] imagem)
     {
-        try { await c.Chamar("start_session", new JArray()); } catch (Exception e) { Debug.Log("start_session: " + e.Message); }
-        c.estado = "enviando a imagem";
-        var arq = await c.Enviar(imagem, "entrada.jpg", "image/jpeg");
-        var prep = await c.Chamar("preprocess_image", new JArray(arq));
-        int seed = UnityEngine.Random.Range(0, int.MaxValue - 1);
-        await c.Chamar("image_to_3d", new JArray(
-            prep[0], seed, resolucao,
-            7.5, 0.7, 12, 5.0,    // estrutura esparsa
-            7.5, 0.5, 12, 3.0,    // forma
-            1.0, 0.0, 12, 3.0));  // textura
-        c.estado = "exportando o GLB";
-        var glb = await c.Chamar("extract_glb", new JArray(null, decimacao, textura));
-        return await c.Baixar(glb[0]);
+        string sub = "sessão";
+        try
+        {
+            try { await c.Chamar("start_session", new JArray()); } catch (Exception e) { Debug.Log("start_session: " + e.Message); }
+            sub = "envio da imagem";
+            c.estado = "enviando a imagem";
+            var arq = await c.Enviar(imagem, "entrada.jpg", "image/jpeg");
+            sub = "preprocess_image";
+            var prep = await c.Chamar("preprocess_image", new JArray(arq));
+            sub = "image_to_3d";
+            int seed = UnityEngine.Random.Range(0, int.MaxValue - 1);
+            await c.Chamar("image_to_3d", new JArray(
+                prep[0], seed, resolucao,
+                7.5, 0.7, 12, 5.0,    // estrutura esparsa
+                7.5, 0.5, 12, 3.0,    // forma
+                1.0, 0.0, 12, 3.0));  // textura
+            sub = "extract_glb";
+            c.estado = "exportando o GLB";
+            var glb = await c.Chamar("extract_glb", new JArray(null, decimacao, textura));
+            sub = "download do GLB";
+            c.estado = "baixando o GLB";
+            return await c.Baixar(glb[0]);
+        }
+        catch (Exception e) { throw new Exception("[" + sub + "] " + e.Message, e); }
     }
 
     async Task<byte[]> ShapEParaGlb(GradioClient c, string desc)
@@ -366,19 +445,31 @@ public class GeradorModelo3D : MonoBehaviour
         return raiz;
     }
 
+    void FalhaCarregamento(GameObject raiz, string motivo)
+    {
+        Debug.LogWarning("GeradorModelo3D: carregamento do GLB falhou: " + motivo);
+        ultimaFalha = "carregamento do GLB (glTFast): " + motivo;
+        voz?.MostrarAviso("3D falhou: carregamento do GLB", 8f);
+        var painel = FindAnyObjectByType<PainelInfo>();
+        if (painel != null)
+            painel.Mostrar(new JObject { ["titulo"] = "Falha no modelo 3D", ["linhas"] = new JArray("Etapa: carregamento do GLB", motivo), ["duracao"] = 30 });
+        voz?.Falar("o modelo 3D foi baixado mas não consegui abri-lo na sala: " + motivo + ". Explique em uma frase simples e sugira gerar de novo.");
+        if (raiz != null) { HoloRegistro.Remover(raiz); Destroy(raiz); }
+    }
+
     IEnumerator CarregarConteudo(GameObject raiz, string caminho, float tamanho)
     {
         byte[] dados = null;
         try { dados = File.ReadAllBytes(caminho); }
         catch (Exception e) { Debug.LogWarning("GeradorModelo3D: arquivo ausente: " + e.Message); }
-        if (dados == null) yield break;
+        if (dados == null) { FalhaCarregamento(raiz, "arquivo do modelo não encontrado"); yield break; }
 
         var conteudo = new GameObject("Conteudo").transform;
         conteudo.SetParent(raiz.transform, false);
         var gltf = new GltfImport();
         var carregar = gltf.LoadGltfBinary(dados);
         while (!carregar.IsCompleted) yield return null;
-        if (!carregar.Result) { Debug.LogWarning("GeradorModelo3D: glTFast não conseguiu ler o GLB"); yield break; }
+        if (!carregar.Result) { FalhaCarregamento(raiz, "o glTFast não conseguiu ler o arquivo GLB"); yield break; }
         var inst = gltf.InstantiateMainSceneAsync(conteudo);
         while (!inst.IsCompleted) yield return null;
         if (raiz == null) yield break;

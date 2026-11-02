@@ -1,5 +1,23 @@
 # PROGRESSO
 
+# 🧊 DIAGNÓSTICO DO MODELO 3D (último pedido que falhou)
+
+**Etapa que falhou: a PRIMEIRA, a geração da imagem** (não é o Gemini: a imagem vem do Space gratuito **FLUX.1-schnell**), por **cota do ZeroGPU do Hugging Face**: `You have exceeded your ZeroGPU quota (90s requested vs. 0s left)... Authenticate with a Hugging Face token for more quota`. O plano B (Shap-E) recebeu a mesma recusa. Ou seja, o TRELLIS.2 nem chegou a ser chamado; o endpoint não mudou e o download/glTFast não foram exercitados. Reproduzido no editor com a mesma conexão (o logcat do Quest só tinha 5 linhas do Unity, sem registro da sua tentativa; a causa bate com a do teste da Fase 6).
+- Qualquer chamada a Spaces com ZeroGPU sem token usa a cota anônima por IP, que está zerada ("0s left").
+
+## O que mudou
+- **Etapa e erro à vista:** o holograma "gerando…" mostra a etapa e o andamento; em caso de falha aparecem (1) o painel "Falha no modelo 3D" com "Etapa: …" e o erro por 30 s, (2) o rótulo embaixo do anel "3D falhou: <etapa>" por 8 s, (3) a linha `3D: etapa: erro` no painel CONEXÃO, (4) o log `GeradorModelo3D: falhou em [etapa]`. As etapas distinguem: foto da câmera, geração da imagem (FLUX), TRELLIS.2 com a subetapa (`[sessão]`, `[envio da imagem]`, `[preprocess_image]`, `[image_to_3d]`, `[extract_glb]`, `[download do GLB]`), Shap-E (plano B) e carregamento do GLB (glTFast, que antes só ia para o log).
+- **A Zetta explica por voz** conforme a causa: cota do Hugging Face (e como resolver com token), endpoint/interface mudou (404), serviço lotado/fora do ar (503/429/fila), falha de download, câmera sem permissão, falha ao abrir o GLB, erro inesperado.
+- **Token do Hugging Face:** `GradioClient` envia `Authorization: Bearer <token>` quando `ZettaSegredos.tokenHuggingFace` está preenchido, só para hf.space/huggingface.co, e o token nunca vai para log, painel ou fala. Vale para FLUX, TRELLIS.2 e Shap-E.
+
+## O que você precisa fazer
+1. Criar a conta grátis em huggingface.co → Settings → Access Tokens → token do tipo **Read** (fine-grained sem escopos extras também serve).
+2. Colar no asset `Assets/Segredos/ZettaSegredos`, campo `tokenHuggingFace` (nunca em arquivos versionados) e refazer o build.
+3. Testar: "Zetta, crie uma poltrona vermelha realista". Se mesmo com token a cota esgotar, ela avisa que é limite diário.
+4. Alternativa sem conta: tentar mais tarde; a cota anônima é por IP e se renova.
+
+---
+
 # 🔧 ATUALIZAÇÃO MAIS RECENTE (correções pós-teste no Quest)
 
 ## Pronto (código + checagem no editor; Console sem erros; build de conferência 0 erros)

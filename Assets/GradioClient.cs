@@ -7,7 +7,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using Newtonsoft.Json.Linq;
 
-// Cliente mínimo do protocolo HTTP/SSE do Gradio (queue/join + queue/data), sem token do Hugging Face.
+// Cliente mínimo do protocolo HTTP/SSE do Gradio (queue/join + queue/data). Com token gratuito do Hugging Face a cota
+// do ZeroGPU é maior; o token só é enviado para hf.space / huggingface.co e nunca é registrado em log.
 public class GradioClient
 {
     public readonly string baseUrl;
@@ -25,14 +26,36 @@ public class GradioClient
         return c;
     }
 
-    public GradioClient(string baseUrl) { this.baseUrl = baseUrl.TrimEnd('/'); }
+    readonly string token;
+
+    public GradioClient(string baseUrl, string token = null)
+    {
+        this.baseUrl = baseUrl.TrimEnd('/');
+        this.token = string.IsNullOrWhiteSpace(token) ? null : token.Trim();
+    }
+
+    public bool UsaToken => token != null;
+
+    HttpRequestMessage Msg(HttpMethod metodo, string url, HttpContent conteudo = null)
+    {
+        var r = new HttpRequestMessage(metodo, url) { Content = conteudo };
+        if (token != null)
+        {
+            var host = new Uri(url).Host;
+            if (host.EndsWith(".hf.space") || host == "huggingface.co" || host.EndsWith(".huggingface.co"))
+                r.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+        }
+        return r;
+    }
 
     // resolve api_name → fn_index a partir de /config (cacheado)
     async Task<int> Indice(string apiName)
     {
         if (indices == null)
         {
-            var txt = await http.GetStringAsync(baseUrl + "/config");
+            using var rc = await http.SendAsync(Msg(HttpMethod.Get, baseUrl + "/config"));
+            var txt = await rc.Content.ReadAsStringAsync();
+            if (!rc.IsSuccessStatusCode) throw new Exception("config HTTP " + (int)rc.StatusCode + ": " + Resumo(txt));
             var cfg = JObject.Parse(txt);
             indices = new Dictionary<string, int>();
             foreach (var d in (JArray)cfg["dependencies"])
@@ -57,13 +80,13 @@ public class GradioClient
             ["session_hash"] = sessao
         };
         estado = "enviando pedido";
-        var resp = await http.PostAsync(baseUrl + "/gradio_api/queue/join",
-            new StringContent(corpo.ToString(Newtonsoft.Json.Formatting.None), Encoding.UTF8, "application/json"));
+        using var resp = await http.SendAsync(Msg(HttpMethod.Post, baseUrl + "/gradio_api/queue/join",
+            new StringContent(corpo.ToString(Newtonsoft.Json.Formatting.None), Encoding.UTF8, "application/json")));
         var txt = await resp.Content.ReadAsStringAsync();
         if (!resp.IsSuccessStatusCode) throw new Exception("join HTTP " + (int)resp.StatusCode + ": " + Resumo(txt));
         string eventId = JObject.Parse(txt).Value<string>("event_id");
 
-        using var req = new HttpRequestMessage(HttpMethod.Get, baseUrl + "/gradio_api/queue/data?session_hash=" + sessao);
+        using var req = Msg(HttpMethod.Get, baseUrl + "/gradio_api/queue/data?session_hash=" + sessao);
         using var r = await http.SendAsync(req, HttpCompletionOption.ResponseHeadersRead);
         r.EnsureSuccessStatusCode();
         using var stream = await r.Content.ReadAsStreamAsync();
@@ -118,7 +141,7 @@ public class GradioClient
         var parte = new ByteArrayContent(bytes);
         parte.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(mime);
         form.Add(parte, "files", nome);
-        var resp = await http.PostAsync(baseUrl + "/gradio_api/upload", form);
+        using var resp = await http.SendAsync(Msg(HttpMethod.Post, baseUrl + "/gradio_api/upload", form));
         var txt = await resp.Content.ReadAsStringAsync();
         if (!resp.IsSuccessStatusCode) throw new Exception("upload HTTP " + (int)resp.StatusCode + ": " + Resumo(txt));
         var caminho = ((JArray)JToken.Parse(txt))[0].ToString();
@@ -135,7 +158,9 @@ public class GradioClient
     {
         string url = fileData.Value<string>("url");
         if (string.IsNullOrEmpty(url)) url = baseUrl + "/gradio_api/file=" + fileData.Value<string>("path");
-        return await http.GetByteArrayAsync(url);
+        using var rd = await http.SendAsync(Msg(HttpMethod.Get, url));
+        if (!rd.IsSuccessStatusCode) throw new Exception("download HTTP " + (int)rd.StatusCode);
+        return await rd.Content.ReadAsByteArrayAsync();
     }
 
     static string Resumo(string s) => string.IsNullOrEmpty(s) ? "" : (s.Length > 200 ? s.Substring(0, 200) : s);

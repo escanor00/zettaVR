@@ -25,6 +25,7 @@ public class PaineisHolograficos : MonoBehaviour
     Painel[] paineis;
     AssistenteVoz voz;
     PassthroughMR pass;
+    GeradorModelo3D gerador3d;
     float proximaAtualizacao;
 
     // barrinhas do volume que o microfone está captando (0..1)
@@ -39,6 +40,7 @@ public class PaineisHolograficos : MonoBehaviour
         yield return new WaitForSeconds(atrasoInicial);
         voz = FindAnyObjectByType<AssistenteVoz>();
         pass = FindAnyObjectByType<PassthroughMR>();
+        gerador3d = FindAnyObjectByType<GeradorModelo3D>();
 
         var cam = Camera.main.transform;
         // direção horizontal em que o usuário olha agora
@@ -52,7 +54,8 @@ public class PaineisHolograficos : MonoBehaviour
             ("CONEXÃO", () => Application.internetReachability == NetworkReachability.NotReachable
                 ? "SEM REDE" : "REDE OK\nGemini: " + (voz != null ? voz.status : "-")
                     + (voz != null && !string.IsNullOrEmpty(voz.ultimoErro) ? "\n" + voz.ultimoErro : "")
-                    + (pass != null ? "\n" + pass.estado : "")),
+                    + (pass != null ? "\n" + pass.estado : "")
+                    + (gerador3d != null && !string.IsNullOrEmpty(gerador3d.ultimaFalha) ? "\n3D: " + gerador3d.ultimaFalha : "")),
             ("ASSISTENTE", () => voz != null
                 ? "Mic: " + voz.estadoMic + "\n" + Barras(voz.nivelMic)
                     + (string.IsNullOrEmpty(voz.ultimoOuvido) ? "" : "\nOuvi: " + voz.ultimoOuvido) : "-")

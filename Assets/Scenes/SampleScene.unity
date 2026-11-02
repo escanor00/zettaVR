@@ -1015,6 +1015,7 @@ MonoBehaviour:
   textura: 1024
   tamanhoFinal: 0.3
   ladoFoto: 1024
+  ultimaFalha: 
 --- !u!4 &649579335
 Transform:
   m_ObjectHideFlags: 0
