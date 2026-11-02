@@ -1464,6 +1464,7 @@ MonoBehaviour:
   ultimoOuvido: 
   ultimoErro: 
   silenciarMicEnquantoFala: 1
+  semInterrupcaoServidor: 1
 --- !u!4 &824584395
 Transform:
   m_ObjectHideFlags: 0

@@ -91,6 +91,14 @@ public class AssistenteVoz : MonoBehaviour
     public bool silenciarMicEnquantoFala = true;
     bool falando, descartarSaida;
     float tempoFala;
+    // O Unity não tem cancelamento de eco: a voz da Zetta entra no microfone e a Gemini a toma por interrupção (frases cortadas).
+    // Defesa dupla: (1) o servidor não aceita interrupção por voz (activityHandling=NO_INTERRUPTION; só a pinça/PARAR interrompe);
+    // (2) o microfone fica fechado durante todo o turno de resposta, não só enquanto há áudio no buffer.
+    [Tooltip("Envia realtimeInputConfig.activityHandling=NO_INTERRUPTION. Desligado sozinho se o servidor recusar a configuração 2 vezes seguidas.")]
+    public bool semInterrupcaoServidor = true;
+    int falhasSemSetup;
+    bool turnoAberto;
+    float ultimoAudioEm;
     TextMeshPro textoStatus;
     RectTransform alvoStatus;
     BotaoHolo botaoParar;
@@ -103,6 +111,7 @@ public class AssistenteVoz : MonoBehaviour
         if (!falando && !processando) return;
         Debug.Log("AssistenteVoz: fala interrompida pelo usuário.");
         LimparReproducao();
+        turnoAberto = false;
         descartarSaida = true;
         processando = false;
         novoTurno = true;
@@ -206,7 +215,13 @@ public class AssistenteVoz : MonoBehaviour
         for (int i = 0; ; i++)
         {
             yield return ConectarEOuvir();
-            if (setupOk) { i = 0; setupOk = false; }
+            if (setupOk) { i = 0; setupOk = false; falhasSemSetup = 0; }
+            else if (semInterrupcaoServidor && ++falhasSemSetup >= 2 && Application.internetReachability != NetworkReachability.NotReachable)
+            {
+                // duas sessões seguidas nem chegaram ao setupComplete: pode ser o campo novo; volta ao modo só com mic mudo
+                semInterrupcaoServidor = false;
+                Debug.LogWarning("AssistenteVoz: sessão não iniciou com NO_INTERRUPTION; desligando essa configuração.");
+            }
             status = "Reconectando";
             texto.text = "Reconectando..." + (string.IsNullOrEmpty(ultimoErro) ? "" : "\n" + ultimoErro);
             yield return new WaitForSeconds(Mathf.Min(3f + i, 10f));
@@ -362,6 +377,12 @@ public class AssistenteVoz : MonoBehaviour
             ["inputAudioTranscription"] = new JObject(),
             ["outputAudioTranscription"] = new JObject()
         };
+        if (semInterrupcaoServidor)
+            setup["realtimeInputConfig"] = new JObject
+            {
+                ["activityHandling"] = "NO_INTERRUPTION",
+                ["automaticActivityDetection"] = new JObject { ["startOfSpeechSensitivity"] = "START_SENSITIVITY_LOW" }
+            };
         // busca do Google (grounding) sempre ativa + ferramentas do app
         var tools = new JArray();
         if (usarBuscaGoogle) tools.Add(new JObject { ["googleSearch"] = new JObject() });
@@ -396,7 +417,7 @@ public class AssistenteVoz : MonoBehaviour
         volumeSaida = Mathf.Lerp(volumeSaida, Mathf.Clamp01(rmsAtual * 4f), Time.deltaTime * 15f);
         if (volumeSaida > 0.02f) { ultimaAtividade = Time.time; acordada = true; }
         if (acordada && Time.time - ultimaAtividade > tempoAtivaSegundos) acordada = false;
-        falando = contagem > 0;
+        falando = contagem > 0 || (turnoAberto && Time.time - ultimoAudioEm < 3f);
         if (falando) tempoFala = Time.time;
         if (clipMic != null)
         {
@@ -488,6 +509,7 @@ public class AssistenteVoz : MonoBehaviour
             if (sc["interrupted"] != null && (bool)sc["interrupted"])
             {
                 descartarSaida = false;
+                turnoAberto = false;
                 LimparReproducao();
                 novoTurno = true;
             }
@@ -539,6 +561,7 @@ public class AssistenteVoz : MonoBehaviour
                 audioNoTurno = false;
                 processando = false;
                 descartarSaida = false;
+                turnoAberto = false;
                 novoTurno = true;
                 novoTurnoEntrada = true;
                 ultimaAtividade = Time.time;
@@ -602,7 +625,7 @@ public class AssistenteVoz : MonoBehaviour
         for (int k = 0; k < tmp.Length; k++) soma += tmp[k] * tmp[k];
         float rms = tmp.Length > 0 ? Mathf.Sqrt(soma / tmp.Length) : 0f;
         nivelMic = Mathf.Lerp(nivelMic, Mathf.Clamp01(rms * 8f), 0.5f);
-        bool silenciado = silenciarMicEnquantoFala && (falando || Time.time - tempoFala < 0.6f);
+        bool silenciado = silenciarMicEnquantoFala && (falando || Time.time - tempoFala < 0.9f);
         if (!pronto || silenciado) { bufferMic.Clear(); return; }
         bufferMic.AddRange(tmp);
 
@@ -639,6 +662,8 @@ public class AssistenteVoz : MonoBehaviour
         for (int i = 0; i < amostras.Length; i++)
             amostras[i] = (short)(pcm[i * 2] | (pcm[i * 2 + 1] << 8)) / 32768f;
         if (taxa != TaxaSaida) amostras = Reamostrar(amostras, taxa, TaxaSaida);
+        turnoAberto = true;
+        ultimoAudioEm = Time.time;
         lock (trava)
         {
             foreach (var a in amostras)
