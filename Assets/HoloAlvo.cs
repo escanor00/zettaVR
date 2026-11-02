@@ -11,10 +11,47 @@ public static class HoloAlvo
     {
         var cam = Camera.main;
         if (cam == null) return null;
+        // 1) o objeto que a mão está tocando ou a poucos centímetros
+        var daMao = MaisPertoDaMao(0.15f);
+        if (daMao != null) return daMao;
+        // 2) o que está no olhar
         var item = MelhorPorRaio(cam.transform.position, cam.transform.forward, maxAngulo);
         if (item == null && tentarApontar && TentarRaioDoDedo(out var origem, out var dir))
             item = MelhorPorRaio(origem, dir, maxAngulo * 0.75f);
         return item;
+    }
+
+    // objeto cuja caixa está a menos de 'maxDist' da ponta de um dos dedos indicadores
+    public static HoloItem MaisPertoDaMao(float maxDist)
+    {
+        SubsystemManager.GetSubsystems(subs);
+        if (subs.Count == 0 || !subs[0].running) return null;
+        var xr = Object.FindAnyObjectByType<Unity.XR.CoreUtils.XROrigin>();
+        if (xr == null) return null;
+        HoloItem melhor = null;
+        float menor = maxDist;
+        foreach (var mao in new[] { subs[0].rightHand, subs[0].leftHand })
+        {
+            if (!mao.isTracked || !mao.GetJoint(XRHandJointID.IndexTip).TryGetPose(out var ponta)) continue;
+            var p = xr.Origin.transform.TransformPoint(ponta.position);
+            foreach (var it in HoloRegistro.Itens)
+            {
+                if (it.go == null || !it.go.activeInHierarchy) continue;
+                var rs = it.go.GetComponentsInChildren<Renderer>();
+                if (rs.Length == 0) continue;
+                Bounds b = default;
+                bool ok = false;
+                foreach (var r in rs)
+                {
+                    if (r is LineRenderer) continue;
+                    if (!ok) { b = r.bounds; ok = true; } else b.Encapsulate(r.bounds);
+                }
+                if (!ok) continue;
+                float d = Vector3.Distance(b.ClosestPoint(p), p);
+                if (d < menor) { menor = d; melhor = it; }
+            }
+        }
+        return melhor;
     }
 
     static HoloItem MelhorPorRaio(Vector3 origem, Vector3 dir, float maxAngulo)

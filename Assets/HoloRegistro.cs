@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
+using Newtonsoft.Json.Linq;
 using UnityEngine;
 
 public class HoloItem
 {
+    public int id;                      // número curto para a Zetta se referir ao objeto
     public GameObject go;
     public string forma;
     public string cor;
@@ -17,6 +19,7 @@ public class HoloItem
 public static class HoloRegistro
 {
     public static readonly List<HoloItem> Itens = new List<HoloItem>();
+    static int proximoId;
     // true enquanto objetos salvos são recriados (a mesa holográfica não os faz subir)
     public static bool Carregando;
     public static event Action<GameObject> aoAdicionar;
@@ -26,6 +29,7 @@ public static class HoloRegistro
     static void Reiniciar()
     {
         Itens.Clear();
+        proximoId = 0;
         Carregando = false;
         aoAdicionar = null;
         aoRemover = null;
@@ -35,7 +39,7 @@ public static class HoloRegistro
         string tipo = "primitiva", float tamanho = 0.15f, string extra = "")
     {
         Itens.RemoveAll(i => i.go == null);
-        var item = new HoloItem { go = go, forma = forma ?? "", cor = cor ?? "", descricao = (descricao ?? "").Trim(), tipo = tipo, tamanho = tamanho, extra = extra ?? "" };
+        var item = new HoloItem { id = ++proximoId, go = go, forma = forma ?? "", cor = cor ?? "", descricao = (descricao ?? "").Trim(), tipo = tipo, tamanho = tamanho, extra = extra ?? "" };
         Itens.Add(item);
         aoAdicionar?.Invoke(go);
         return item;
@@ -48,4 +52,24 @@ public static class HoloRegistro
     }
 
     public static HoloItem Buscar(GameObject go) => Itens.Find(i => i.go == go);
+    public static HoloItem BuscarPorId(int id) => Itens.Find(i => i.go != null && i.id == id);
+
+    // Resumo de tudo que existe (id, tipo, cor, tamanho, nome curto): é o que a Gemini recebe para achar o objeto pela descrição.
+    public static JArray Resumo()
+    {
+        var arr = new JArray();
+        foreach (var i in Itens)
+        {
+            if (i.go == null) continue;
+            arr.Add(new JObject
+            {
+                ["id"] = i.id,
+                ["tipo"] = i.tipo,
+                ["nome"] = string.IsNullOrWhiteSpace(i.descricao) ? i.forma : i.descricao,
+                ["cor"] = i.cor,
+                ["tamanho_cm"] = Mathf.RoundToInt(i.tamanho * 100f)
+            });
+        }
+        return arr;
+    }
 }

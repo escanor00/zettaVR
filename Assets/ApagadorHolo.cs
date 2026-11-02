@@ -37,13 +37,19 @@ public class ApagadorHolo : MonoBehaviour
     ""properties"": {
       ""alvo"": { ""type"": ""STRING"", ""enum"": [""descricao"", ""isso"", ""tudo""] },
       ""descricao"": { ""type"": ""STRING"", ""description"": ""Descrição do objeto, ex.: cubo azul, esfera vermelha, sistema solar. Só para alvo=descricao."" },
+      ""id"": { ""type"": ""INTEGER"", ""description"": ""Número do objeto em listar_objetos; use quando souber exatamente qual é (alvo=descricao)."" },
       ""confirmado"": { ""type"": ""BOOLEAN"", ""description"": ""true somente depois que o usuário confirmou por voz o pedido de apagar tudo."" }
     },
     ""required"": [""alvo""]
   }
 }";
+    const string DeclListar = @"{
+  ""name"": ""listar_objetos"",
+  ""description"": ""Lista tudo que existe no ambiente (id, tipo, nome, cor, tamanho em cm, desenhos). Use para saber o que há antes de apagar ou quando o usuário perguntar o que foi criado."",
+  ""parameters"": { ""type"": ""OBJECT"", ""properties"": {} }
+}";
     const string Instrucao =
-        "Para apagar: 'apague o cubo azul' → apagar_objeto alvo=descricao com a descrição; 'apague isso' → alvo=isso; " +
+        "Se o pedido de apagar for ambíguo ou não achar, chame listar_objetos e escolha o id certo (apagar_objeto com id). Para apagar: 'apague o cubo azul' → apagar_objeto alvo=descricao com a descrição; 'apague isso' → alvo=isso; " +
         "'apague tudo' → chame alvo=tudo SEM confirmado; a ferramenta responderá pedindo confirmação: pergunte ao usuário em voz " +
         "'Tem certeza que quer apagar todos os objetos?' e SÓ se ele responder sim chame de novo alvo=tudo com confirmado=true.";
 
@@ -52,7 +58,11 @@ public class ApagadorHolo : MonoBehaviour
     void Awake()
     {
         var voz = FindAnyObjectByType<AssistenteVoz>();
-        if (voz != null) voz.RegistrarFerramenta(Decl, Controlar, Instrucao);
+        if (voz != null)
+        {
+            voz.RegistrarFerramenta(Decl, Controlar, Instrucao);
+            voz.RegistrarFerramenta(DeclListar, _ => Listar(), "");
+        }
         HoloRegistro.aoAdicionar += AoAdicionar;
     }
 
@@ -83,7 +93,8 @@ public class ApagadorHolo : MonoBehaviour
         if (alvo == "tudo")
         {
             int n = HoloRegistro.Itens.Count;
-            if (n == 0) return new JObject { ["result"] = "não há objetos para apagar" };
+            var des = FindAnyObjectByType<DesenhoNoAr>();
+            if (n == 0 && (des == null || des.QuantidadeTracos == 0)) return new JObject { ["result"] = "não há objetos para apagar" };
             bool confirmado = args.Value<bool?>("confirmado") ?? false;
             if (!confirmado || Time.time - pedidoTudoEm > confirmacaoSegundos)
             {
@@ -92,6 +103,7 @@ public class ApagadorHolo : MonoBehaviour
             }
             pedidoTudoEm = -999f;
             foreach (var it in new List<HoloItem>(HoloRegistro.Itens)) if (it.go != null) Apagar(it.go);
+            FindAnyObjectByType<DesenhoNoAr>()?.Apagar();
             FindAnyObjectByType<AncorasHolo>()?.ApagarTodasAncoras();
             return new JObject { ["result"] = n + " objetos apagados" };
         }
@@ -99,8 +111,16 @@ public class ApagadorHolo : MonoBehaviour
         if (alvo == "descricao")
         {
             string consulta = args.Value<string>("descricao") ?? "";
-            var it = Buscar(consulta);
-            if (it == null) return new JObject { ["erro"] = "não achei nenhum objeto parecido com '" + consulta + "'" };
+            int idPedido = args.Value<int?>("id") ?? 0;
+            var it = idPedido > 0 ? HoloRegistro.BuscarPorId(idPedido) : null;
+            if (it == null && ApagarDesenhoSePedido(consulta, out var resDes)) return resDes;
+            if (it == null) it = Buscar(consulta);
+            if (it == null)
+                return new JObject
+                {
+                    ["erro"] = "não achei nenhum objeto parecido com '" + consulta + "'. Veja a lista e escolha o id certo, ou diga ao usuário o que existe.",
+                    ["objetos"] = HoloRegistro.Resumo()
+                };
             string d = it.descricao;
             Apagar(it.go);
             return new JObject { ["result"] = "apaguei " + d };
@@ -115,6 +135,53 @@ public class ApagadorHolo : MonoBehaviour
         var sb = new StringBuilder();
         foreach (var c in d) if (CharUnicodeInfo.GetUnicodeCategory(c) != UnicodeCategory.NonSpacingMark) sb.Append(c);
         return sb.ToString();
+    }
+
+    // palavras equivalentes (como o usuário fala → como o objeto foi nomeado)
+    static readonly Dictionary<string, string[]> Sinonimos = new Dictionary<string, string[]>
+    {
+        { "bola", new[] { "esfera" } }, { "globo", new[] { "esfera" } }, { "planeta", new[] { "esfera" } },
+        { "caixa", new[] { "cubo" } }, { "dado", new[] { "cubo" } }, { "quadrado", new[] { "cubo" } },
+        { "lata", new[] { "cilindro" } }, { "tubo", new[] { "cilindro" } }, { "coluna", new[] { "cilindro" } },
+        { "funil", new[] { "cone" } }, { "piramide", new[] { "cone", "piramide" } },
+        { "rosca", new[] { "anel", "toro" } }, { "argola", new[] { "anel", "toro" } }, { "aro", new[] { "anel", "toro" } }, { "donut", new[] { "anel", "toro" } },
+        { "capsula", new[] { "capsula", "cilindro" } },
+        { "lembrete", new[] { "nota" } }, { "anotacao", new[] { "nota" } }, { "bilhete", new[] { "nota" } }, { "postit", new[] { "nota" } },
+        { "vermelha", new[] { "vermelho" } }, { "vermelhas", new[] { "vermelho" } }, { "azuis", new[] { "azul" } },
+        { "verdes", new[] { "verde" } }, { "amarela", new[] { "amarelo" } }, { "branca", new[] { "branco" } },
+        { "preta", new[] { "preto" } }, { "roxa", new[] { "roxo" } }, { "laranja", new[] { "laranja" } },
+        { "rosa", new[] { "rosa", "rosado" } }, { "cinza", new[] { "cinza" } }, { "ciana", new[] { "ciano" } },
+    };
+
+    static bool Combina(string texto, string token)
+    {
+        if (texto.Contains(token)) return true;
+        if (Sinonimos.TryGetValue(token, out var alts)) foreach (var a in alts) if (texto.Contains(a)) return true;
+        return false;
+    }
+
+    // desenhos no ar não ficam no registro: "apague o desenho/traço/risco" limpa todos
+    bool ApagarDesenhoSePedido(string consulta, out JObject res)
+    {
+        res = null;
+        string c = Normalizar(consulta);
+        if (!(c.Contains("desenho") || c.Contains("traco") || c.Contains("risco") || c.Contains("rabisco"))) return false;
+        var des = FindAnyObjectByType<DesenhoNoAr>();
+        if (des == null || des.QuantidadeTracos == 0) { res = new JObject { ["erro"] = "não há desenhos no ar" }; return true; }
+        int n = des.QuantidadeTracos;
+        des.Apagar();
+        res = new JObject { ["result"] = "apaguei o desenho (" + n + " traços)" };
+        return true;
+    }
+
+    JObject Listar()
+    {
+        HoloRegistro.Itens.RemoveAll(i => i.go == null);
+        var res = new JObject { ["objetos"] = HoloRegistro.Resumo() };
+        var des = FindAnyObjectByType<DesenhoNoAr>();
+        if (des != null && des.QuantidadeTracos > 0) res["desenho"] = des.QuantidadeTracos + " traços desenhados no ar";
+        if (HoloRegistro.Itens.Count == 0 && res["desenho"] == null) res["result"] = "não há nada criado";
+        return res;
     }
 
     // acha o objeto cujas palavras cobrem a consulta; em empate, o mais perto do olhar
@@ -133,7 +200,7 @@ public class ApagadorHolo : MonoBehaviour
             if (it.go == null) continue;
             string texto = Normalizar(it.descricao + " " + it.forma + " " + it.cor + " " + it.extra);
             bool tudo = true;
-            foreach (var t in tokens) if (!texto.Contains(t)) { tudo = false; break; }
+            foreach (var t in tokens) if (!Combina(texto, t)) { tudo = false; break; }
             if (!tudo) continue;
             float ang = cam != null ? Vector3.Angle(cam.forward, HoloAlvo.CentroDoObjeto(it.go) - cam.position) : 0f;
             if (ang < melhorAng) { melhorAng = ang; melhor = it; }

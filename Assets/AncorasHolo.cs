@@ -146,6 +146,7 @@ public class AncorasHolo : MonoBehaviour
         {
             if (it.go == null) continue;
             if (it.go.GetComponent<SeguirMao>() != null) continue; // preso ao braço: não re-ancora
+            if (!Fabricas.ContainsKey(it.tipo)) continue;           // sem fábrica não dá para recriar: não ancora
             var t = it.go.transform;
             if (!estados.TryGetValue(it.go, out var e))
             {
