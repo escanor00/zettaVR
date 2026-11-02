@@ -42,7 +42,7 @@ public class EsferaZetta : MonoBehaviour
     const string Instrucao = "'Zetta, mude sua cor para X' → mudar_cor_esfera (dourado, ciano, verde, vermelho, roxo, azul, laranja, rosa, branco); confirme em poucas palavras.";
 
     // ---- anéis ----
-    const int NAneis = 10, NFaiscas = 28, Trilha = 3, NEspiral = 48, NFragmentos = 56;
+    const int NAneis = 14, NFaiscas = 40, Trilha = 3, NEspiral = 40, NFragmentos = 90;
     class Anel
     {
         public Transform t; public float raio, raioAtual; public Vector3 eixo; public float vel, velPropria, ang, angPropria;
@@ -50,13 +50,13 @@ public class EsferaZetta : MonoBehaviour
     }
     class Faisca { public int anel; public float theta, vel, tamanho; }
     // tipo: 0 contínuo, 1 tracejado, 2 arco
-    static readonly int[] Tipos = { 2, 1, 0, 2, 1, 0, 2, 0, 1, 2 };
-    static readonly float[] Raios = { 1.00f, 0.94f, 0.88f, 0.82f, 0.76f, 0.70f, 0.62f, 0.55f, 0.48f, 0.40f };
+    static readonly int[] Tipos = { 2, 1, 0, 2, 1, 0, 2, 0, 1, 2, 3, 3, 2, 0 };
+    static readonly float[] Raios = { 1.00f, 0.94f, 0.88f, 0.82f, 0.76f, 0.70f, 0.62f, 0.55f, 0.48f, 0.40f, 1.10f, 0.66f, 0.34f, 0.30f };
 
     readonly List<Anel> aneis = new List<Anel>();
     readonly List<Faisca> faiscas = new List<Faisca>();
     Material mat;
-    Mesh[] malhasAnel = new Mesh[3];
+    Mesh[] malhasAnel = new Mesh[4];
     Mesh malhaParticulas, malhaFragmentos;
     Transform fragmentos;
     Vector3[] verts; Color[] cores; Vector2[] uvs; int[] tris;
@@ -73,10 +73,13 @@ public class EsferaZetta : MonoBehaviour
     {
         corAtual = PlayerPrefs.GetString(ChaveCor, "dourado");
         if (!Paletas.ContainsKey(corAtual)) corAtual = "dourado";
-        nucleoAtual = Paletas[corAtual].nucleo; bordaAtual = Paletas[corAtual].borda;
+        nucleoAtual = Nucleo(Paletas[corAtual]); bordaAtual = Paletas[corAtual].borda;
         if (voz == null) voz = FindAnyObjectByType<AssistenteVoz>();
         if (voz != null) voz.RegistrarFerramenta(Decl, MudarCor, Instrucao);
     }
+
+    // chama/núcleo na mesma cor da esfera (só um pouco mais clara), nunca branca
+    static Color Nucleo(Paleta p) { return Color.Lerp(p.borda, Color.white, 0.22f); }
 
     public JObject MudarCor(JObject args)
     {
@@ -100,9 +103,10 @@ public class EsferaZetta : MonoBehaviour
         mat = new Material(shader) { enableInstancing = true, mainTexture = TexturaRadial(64) };
         mat.renderQueue = 3100;
 
-        malhasAnel[0] = CriarFita(0, 72, 0f, Mathf.PI * 2f, 0.012f, 0.55f, 0.55f);
-        malhasAnel[1] = CriarFita(1, 48, 0f, Mathf.PI * 2f, 0.016f, 0.9f, 0.9f);
-        malhasAnel[2] = CriarFita(2, 40, 0f, 2.4f, 0.022f, 0.05f, 1f);
+        malhasAnel[0] = CriarFita(0, 72, 0f, Mathf.PI * 2f, 0.022f, 0.8f, 0.8f);
+        malhasAnel[1] = CriarFita(1, 48, 0f, Mathf.PI * 2f, 0.03f, 1f, 1f);
+        malhasAnel[2] = CriarFita(2, 40, 0f, 2.4f, 0.04f, 0.1f, 1f);
+        malhasAnel[3] = CriarMarcas(96);
 
         var rnd = new System.Random(7);
         for (int i = 0; i < NAneis; i++)
@@ -130,7 +134,7 @@ public class EsferaZetta : MonoBehaviour
             {
                 anel = rnd.Next(NAneis), theta = (float)rnd.NextDouble() * 6.28f,
                 vel = (0.9f + 1.8f * (float)rnd.NextDouble()) * (rnd.Next(2) == 0 ? 1f : -1f),
-                tamanho = 0.028f + 0.02f * (float)rnd.NextDouble()
+                tamanho = 0.04f + 0.03f * (float)rnd.NextDouble()
             });
 
         CriarFragmentos(rnd);
@@ -168,6 +172,22 @@ public class EsferaZetta : MonoBehaviour
             Quad(v, c, uv, t, pA + Vector3.forward * h, pA - Vector3.forward * h, pB - Vector3.forward * h, pB + Vector3.forward * h, alA, alB, tipo == 1 ? 0.35f : 0f);
         }
         var m = new Mesh { name = "FitaAnel" + tipo };
+        m.SetVertices(v); m.SetColors(c); m.SetUVs(0, uv); m.SetTriangles(t, 0);
+        m.bounds = new Bounds(Vector3.zero, Vector3.one * 2.4f);
+        return m;
+    }
+
+    // anel de marcas radiais (estilo régua/HUD); a cada 6ª marca é mais longa
+    static Mesh CriarMarcas(int n)
+    {
+        var v = new List<Vector3>(); var c = new List<Color>(); var uv = new List<Vector2>(); var t = new List<int>();
+        for (int j = 0; j < n; j++)
+        {
+            float a = j / (float)n * Mathf.PI * 2f, l = j % 6 == 0 ? 0.075f : 0.035f, w = 0.007f;
+            var d = new Vector3(Mathf.Cos(a), Mathf.Sin(a), 0); var tg = new Vector3(-d.y, d.x, 0);
+            Quad(v, c, uv, t, d * (1 - l) - tg * w, d * (1 - l) + tg * w, d + tg * w, d - tg * w, 1f, 1f, j % 6 == 0 ? 0f : 0.2f);
+        }
+        var m = new Mesh { name = "Marcas" };
         m.SetVertices(v); m.SetColors(c); m.SetUVs(0, uv); m.SetTriangles(t, 0);
         m.bounds = new Bounds(Vector3.zero, Vector3.one * 2.4f);
         return m;
@@ -220,7 +240,7 @@ public class EsferaZetta : MonoBehaviour
     // malha dinâmica: brilho central (1) + espiral do núcleo (48) + faíscas com rastro (28 × 3)
     void CriarParticulas()
     {
-        quadsParticulas = 1 + NEspiral + NFaiscas * Trilha;
+        quadsParticulas = 3 + NEspiral * 2 + NFaiscas * Trilha;
         verts = new Vector3[quadsParticulas * 4]; cores = new Color[verts.Length]; uvs = new Vector2[verts.Length];
         tris = new int[quadsParticulas * 6];
         for (int q = 0; q < quadsParticulas; q++)
@@ -264,11 +284,11 @@ public class EsferaZetta : MonoBehaviour
         if (voz != null && voz.nivelMic > 0.04f && !falando) ultimaVozUsuario = tempo;
         bool ouvindo = acordada && !falando && tempo - ultimaVozUsuario < 0.6f;
         bool processando = acordada && !falando && !ouvindo && tempo - ultimaVozUsuario < 6f;
-        if (!acordada && !falando) { alvoGiro = 0.3f; alvoBrilho = 0.35f; }
-        else if (falando) { alvoGiro = 1.3f; alvoBrilho = 0.75f; alvoPulso = voz.volumeSaida; }
-        else if (ouvindo) { alvoGiro = 0.9f; alvoBrilho = 0.85f; alvoContr = 0.72f; }
-        else if (processando) { alvoGiro = 3.2f; alvoBrilho = 1f; alvoContr = 0.92f; }
-        else { alvoGiro = 0.7f; alvoBrilho = 0.55f; }
+        if (!acordada && !falando) { alvoGiro = 0.35f; alvoBrilho = 0.7f; }
+        else if (falando) { alvoGiro = 1.3f; alvoBrilho = 1f; alvoPulso = voz.volumeSaida; }
+        else if (ouvindo) { alvoGiro = 0.9f; alvoBrilho = 1f; alvoContr = 0.72f; }
+        else if (processando) { alvoGiro = 3.2f; alvoBrilho = 1.2f; alvoContr = 0.92f; }
+        else { alvoGiro = 0.7f; alvoBrilho = 0.85f; }
 
         float vol = voz != null ? voz.volumeSaida : 0f;
         if (falando && vol - volAnterior > 0.12f) rajada = 1f;       // pico de voz → faíscas extras
@@ -286,11 +306,11 @@ public class EsferaZetta : MonoBehaviour
 
         // --- cores (transição suave entre paletas; erro mistura vermelho) ---
         var alvoP = Paletas[corAtual];
-        nucleoAtual = Color.Lerp(nucleoAtual, alvoP.nucleo, dt * 5f); bordaAtual = Color.Lerp(bordaAtual, alvoP.borda, dt * 5f);
+        nucleoAtual = Color.Lerp(nucleoAtual, Nucleo(alvoP), dt * 5f); bordaAtual = Color.Lerp(bordaAtual, alvoP.borda, dt * 5f);
         var red = Paletas["vermelho"];
-        mat.SetColor("_CorNucleo", Color.Lerp(nucleoAtual, red.nucleo, mixErro));
+        mat.SetColor("_CorNucleo", Color.Lerp(nucleoAtual, Nucleo(red), mixErro));
         mat.SetColor("_CorBorda", Color.Lerp(bordaAtual, red.borda, mixErro));
-        mat.SetFloat("_Brilho", (brilho + 0.9f * pulso + 0.8f * mixErro) * 1.15f);
+        mat.SetFloat("_Brilho", (brilho + 0.9f * pulso + 0.8f * mixErro) * 1.9f);
         mat.SetVector("_Centro", transform.position);
         mat.SetFloat("_Raio", Mathf.Max(0.0001f, transform.lossyScale.x));
 
@@ -314,18 +334,21 @@ public class EsferaZetta : MonoBehaviour
         int q = 0;
 
         // brilho central
-        Billboard(q++, Vector3.zero, r, u, 0.5f * (1f + 0.25f * pulso + 0.1f * Mathf.Sin(tempo * 3f)), 0.55f);
+        float respira = 1f + 0.25f * pulso + 0.1f * Mathf.Sin(tempo * 3f);
+        Billboard(q++, Vector3.zero, r, u, 0.62f * respira, 0.8f);
+        Billboard(q++, Vector3.zero, r, u, 0.3f * respira, 1f);
+        Billboard(q++, Vector3.zero, r, u, 0.13f * respira, 1f);
 
         // espiral do núcleo
         tempoEspiral += dt * (2.2f + 2.5f * giro);
         var inclina = Quaternion.Euler(24f, 0f, 18f);
-        for (int i = 0; i < NEspiral; i++)
+        for (int i = 0; i < NEspiral * 2; i++)
         {
-            float f = i / (float)NEspiral;
-            float ang = f * 6.2f * 2.2f + tempoEspiral;
+            float f = (i % NEspiral) / (float)NEspiral;
+            float ang = f * 6.2f * 2.2f + (i < NEspiral ? tempoEspiral : -tempoEspiral * 0.8f + 3.14f);
             float rr = (0.04f + 0.3f * f) * contracao * (1f + 0.3f * pulso);
             var p = inclina * new Vector3(Mathf.Cos(ang) * rr, Mathf.Sin(ang * 0.5f) * 0.05f, Mathf.Sin(ang) * rr);
-            Billboard(q++, p, r, u, 0.03f * (1.2f - f * 0.5f), (1f - 0.55f * f) * 1.1f);
+            Billboard(q++, p, r, u, 0.04f * (1.2f - f * 0.5f), (1f - 0.45f * f) * 1.3f);
         }
 
         // faíscas pelas órbitas, rastro de 3 pontos
