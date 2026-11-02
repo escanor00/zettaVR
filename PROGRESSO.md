@@ -458,3 +458,6 @@ Feito agora:
 - Escala com duas mãos: o texto é filho da raiz escalada, então acompanha (TMP SDF, nítido); a escala é salva ao soltar.
 - Persistência: texto, letra, cor, tamanho do cartão e escala vão em JSON no `extra` do item (âncora regrava via `MarcarAlterado`, que agora também atualiza `extra`); a fábrica "nota" lê o JSON (notas antigas só com texto continuam funcionando).
 - Editor: criar curta/longa, editar (letra, acrescentar, cor, cartão, trocar texto), salvar escala 1,6 e recriar pela fábrica. Legibilidade real (distância, luz): só no Quest.
+
+### R3-4 Regra geral de limites (feito; build 0 erros)
+- `AssistenteVoz.BaseInstrucao` ganhou "REGRA DE LIMITES": se não há ferramenta para o pedido, em vez de só "não posso" ela diz em uma frase o que consegue fazer de parecido e oferece. Comportamento real só se ouve no Quest (depende da Gemini).
