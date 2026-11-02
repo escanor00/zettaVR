@@ -1,5 +1,29 @@
 # PROGRESSO
 
+# 🔧 ATUALIZAÇÃO MAIS RECENTE (correções pós-teste no Quest)
+
+## Pronto (código + checagem no editor; Console sem erros; build de conferência 0 erros)
+1. **Véu azul com pontinhos** – causa mais provável: os **planos da sala** (`ARPlane.prefab` do MR Template, textura `PlanePatternDot` azul com pontos) que o `SalaAR` liga para física/mesa; o template reativava o renderer. Correção: `SalaAR.EsconderVisual` usa `Renderer.forceRenderingOff` em todos os renderers do plano (vale mesmo que o template reative o renderer) e é aplicado assim que cada plano aparece (`trackablesChanged`) e a cada 1 s. Conferido: sem skybox (Skybox Material vazio, ambiente "Flat"), câmera SolidColor preto alfa 0, sem Volume/pós-processamento, `Environment` do template com renderer desligado, bounding boxes desligadas, nada do tamanho da visão. `Assets/CompositionLayers` só tem configurações (não há camada de cor/tonalidade); o passthrough é o `ARCameraBackground` (underlay, sem tonalidade).
+2. **Pegar pelas bordas** – (a) `ColisorPegada.cs`: caixa pelos bounds dos renderers (incluindo filhos), no espaço local da raiz (segue a escala) e remedida a cada 0,5 s, usada nos modelos prontos (antes eram esferas fixas aproximadas) e nos .glb; primitivas (cubo, esfera, cilindro, cápsula, cone, pirâmide, anel) já tinham colisor exato. (b) `InteracaoMaos.Aplicar`: pegada dinâmica do XRI (`useDynamicAttach`, `matchAttachPosition/Rotation`, `snapToColliderVolume`, reinicia a cada pegada): o objeto mantém o ponto e o ângulo tocados. Sistema de mãos ativo: XR Interaction Toolkit + XR Hands (Near-Far); o Meta Interaction SDK não está instalado. (c) `BrilhoProximidade.cs`: clareia e aumenta a opacidade quando a ponta do indicador/polegar chega a 10 cm da superfície (máximo a 2 cm) e enquanto segura. (d) duas mãos para escalar/girar mantidas.
+3. **Ativação pelo nome** – já feita no ajuste anterior (filtro `EhChamado`, instrução da Gemini, pinça sobre o anel, "diga 'Zetta' antes" 2 s, conversa por 8 s). (e) Conferido no editor com a chave real: sessão Gemini Live "Conectado", pedido de fala → resposta com transcrição "Teste de áudio ok." (áudio chegou e foi tocado; no óculos o rótulo mostra "falando" enquanto toca, ou o erro).
+4. **Menu "Player Settings" do template** (Hand Menu Setup) desativado na cena e também por `PassthroughMR` na inicialização.
+5. **Lixeira** – 0,9 m abaixo da cabeça (nunca abaixo de 0,7 m do chão), 0,4 m à direita e 0,35 m à frente; segue o corpo suavemente quando você anda e só reorienta devagar se você girar a cabeça mais de 40°; tamanho/brilho ao aproximar um objeto mantidos. Conferido no editor: 0,90 m abaixo da cabeça.
+
+## O que pode falhar (só o óculos confirma)
+- Se o véu continuar, veja `adb logcat -s Unity` e me diga se ele some ao desligar o Space Setup/planos; próxima hipótese: textura de pontos vinda de outro objeto do template.
+- Pegada: ajustes finos (distâncias do brilho, `snapToColliderVolume`) dependem do toque real das mãos.
+- Âncoras persistentes e planos reais continuam sem validação no óculos.
+
+## Testes no óculos, em ordem
+1. Abrir o app: a sala deve aparecer com as cores reais, **sem** véu azul de pontos, e sem o menu "Player Settings" ao virar a mão.
+2. Dizer "Z, que horas são?" / "Zé, olá": ela responde e o rótulo mostra "falando" com o áudio tocando.
+3. Frase sem chamar: aparece "diga 'Zetta' antes" por 2 s; pinça sobre o anel acorda; depois de responder, 8 s sem precisar do nome.
+4. "Crie um cubo": aproximar a mão de qualquer aresta/canto → brilho; pinçar numa quina e mover → o objeto fica preso no ponto tocado, sem pular para o centro. Repetir com cone, anel e "mostre o sistema solar".
+5. Duas mãos: escalar e girar; soltar e arremessar devagar.
+6. Lixeira: na altura da cintura, à direita e à frente, ao alcance; andar pela sala (ela acompanha); girar a cabeça (ela não gira junto); levar um objeto até ela (brilha e apaga ao soltar).
+
+---
+
 # ☀️ RESUMO DA MANHÃ (noite autônoma, fases 0 a 8)
 
 ## O que ficou pronto (tudo compila; builds de conferência das fases 0–8 com 0 erros, git com commits e tags `fase-N`/`antes-fase-N`)

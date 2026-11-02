@@ -23,7 +23,7 @@ public class PassthroughMR : MonoBehaviour
         var gm = FindAnyObjectByType<GoalManager>(FindObjectsInactive.Include);
         if (gm != null) gm.gameObject.SetActive(false);
         foreach (var t in FindObjectsByType<Transform>(FindObjectsInactive.Include))
-            if (t.name == "Coaching UI" || t.name == "Tap Tooltip") t.gameObject.SetActive(false);
+            if (t.name == "Coaching UI" || t.name == "Tap Tooltip" || t.name.StartsWith("Hand Menu Setup"))   // menu "Player Settings" do template t.gameObject.SetActive(false);
         Aplicar();
     }
 

@@ -91,6 +91,7 @@ public class ModelosProntos : MonoBehaviour
         rb.useGravity = false;
         rb.linearDamping = 3f;
         rb.angularDamping = 3f;
+        raiz.AddComponent<ColisorPegada>();   // caixa pelos bounds visíveis (antes do XRGrabInteractable)
         raiz.AddComponent<XRGrabInteractable>();
         InteracaoMaos.Aplicar(raiz);
 
@@ -190,9 +191,6 @@ public class ModelosProntos : MonoBehaviour
             var col = planeta.GetComponent<Collider>();
             if (col != null) col.enabled = false;
         }
-        // collider único para pegar o modelo
-        var area = raiz.gameObject.AddComponent<SphereCollider>();
-        area.radius = 0.3f;
     }
 
     void MoleculaAgua(Transform raiz)
@@ -211,8 +209,6 @@ public class ModelosProntos : MonoBehaviour
         var g = raiz.gameObject.AddComponent<Girar>();
         g.grausPorSegundo = 25f;
         g.inicioEm = Time.time + 2f;
-        var area = raiz.gameObject.AddComponent<SphereCollider>();
-        area.radius = 0.16f;
     }
 
     void Ligacao(Transform raiz, Vector3 ate, float atraso)
@@ -244,9 +240,6 @@ public class ModelosProntos : MonoBehaviour
         g.grausPorSegundo = 30f;
         g.inicioEm = Time.time + 2f;
         globo.GetComponent<Collider>().enabled = false;
-
-        var area = raiz.gameObject.AddComponent<SphereCollider>();
-        area.radius = 0.14f;
     }
 
     Texture2D TexturaTerra()

@@ -20,8 +20,17 @@ public static class InteracaoMaos
         grab.throwAngularVelocityScale = 0.5f;
         grab.throwSmoothingDuration = 0.2f;
 
+        // pegada dinâmica: o objeto mantém o ponto e o ângulo onde os dedos tocaram (não pula para o centro da mão)
+        grab.useDynamicAttach = true;
+        grab.matchAttachPosition = true;
+        grab.matchAttachRotation = true;
+        grab.snapToColliderVolume = true;
+        grab.reinitializeDynamicAttachEverySingleGrab = true;
+
         var rb = go.GetComponent<Rigidbody>();
         if (rb != null) { rb.linearDamping = 1.2f; rb.angularDamping = 1.5f; }  // voa e vai parando no ar
+
+        if (go.GetComponent<BrilhoProximidade>() == null) go.AddComponent<BrilhoProximidade>();
 
         var tr = go.GetComponent<XRGeneralGrabTransformer>();
         if (tr == null)

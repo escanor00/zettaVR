@@ -16,8 +16,12 @@ public class ApagadorHolo : MonoBehaviour
 
     [Header("Lixeira")]
     public bool usarLixeira = true;
-    public Vector3 posicaoVista = new Vector3(0.55f, 0f, 0.5f); // à direita e um pouco à frente
-    public float alturaSobreChao = 0.25f;
+    public Vector3 posicaoVista = new Vector3(0.4f, 0f, 0.35f); // à direita e um pouco à frente (ao alcance da mão)
+    public float abaixoDaCabeca = 0.9f;        // altura da cintura
+    public float alturaMinSobreChao = 0.7f;    // nunca mais baixa que isso
+    public float anguloMortoCorpo = 40f;       // girar a cabeça menos que isso não move a lixeira
+    float yawCorpo;
+    bool yawIniciado;
 
     float pedidoTudoEm = -999f;
     Transform lixeira;
@@ -237,18 +241,21 @@ public class ApagadorHolo : MonoBehaviour
         var cam = Camera.main.transform;
         var sala = FindAnyObjectByType<SalaAR>();
         float chao = sala != null ? sala.AlturaChao() : 0f;
-        var yaw = Quaternion.Euler(0f, cam.eulerAngles.y, 0f);
+        if (!yawIniciado) { yawCorpo = cam.eulerAngles.y; yawIniciado = true; }
+        var yaw = Quaternion.Euler(0f, yawCorpo, 0f);
         var p = cam.position + yaw * new Vector3(posicaoVista.x, 0f, posicaoVista.z);
-        p.y = chao + alturaSobreChao;
+        p.y = Mathf.Max(cam.position.y - abaixoDaCabeca, chao + alturaMinSobreChao);
         return p;
     }
 
     void Update()
     {
         if (lixeira == null || Camera.main == null) return;
-        // acompanha o usuário devagar, sempre à direita e perto do chão
-        lixeira.position = Vector3.Lerp(lixeira.position, PosicaoLixeira(), Time.deltaTime * 0.8f);
-        lixeira.rotation = Quaternion.Slerp(lixeira.rotation, HoloUtil.OlharParaUsuario(lixeira.position), Time.deltaTime * 2f);
+        // acompanha o corpo (não a cabeça): o "lado direito" só gira devagar quando a cabeça se afasta muito dele
+        float dif = Mathf.DeltaAngle(yawCorpo, Camera.main.transform.eulerAngles.y);
+        if (Mathf.Abs(dif) > anguloMortoCorpo) yawCorpo += dif * Time.deltaTime * 0.5f;
+        lixeira.position = Vector3.Lerp(lixeira.position, PosicaoLixeira(), Time.deltaTime * 1.5f);
+        lixeira.rotation = Quaternion.Slerp(lixeira.rotation, HoloUtil.OlharParaUsuario(lixeira.position), Time.deltaTime * 0.8f);
 
         // objetos soltos dentro da lixeira são apagados; objetos segurados perto dela a destacam
         bool algumPerto = false;

@@ -1351,8 +1351,10 @@ MonoBehaviour:
   velocidadeArremesso: 2.2
   confirmacaoSegundos: 60
   usarLixeira: 1
-  posicaoVista: {x: 0.55, y: 0, z: 0.5}
-  alturaSobreChao: 0.25
+  posicaoVista: {x: 0.4, y: 0, z: 0.35}
+  abaixoDaCabeca: 0.9
+  alturaMinSobreChao: 0.7
+  anguloMortoCorpo: 40
 --- !u!4 &786320036
 Transform:
   m_ObjectHideFlags: 0
@@ -4789,6 +4791,10 @@ PrefabInstance:
     - target: {fileID: 8396860168400021542, guid: b6d57cedc6a73c94aad8ce006a26b41b, type: 3}
       propertyPath: m_Name
       value: Hand Menu Setup MR Template Variant
+      objectReference: {fileID: 0}
+    - target: {fileID: 8396860168400021542, guid: b6d57cedc6a73c94aad8ce006a26b41b, type: 3}
+      propertyPath: m_IsActive
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 8491520222511772541, guid: b6d57cedc6a73c94aad8ce006a26b41b, type: 3}
       propertyPath: onValueChanged.m_PersistentCalls.m_Calls.Array.data[0].m_Mode

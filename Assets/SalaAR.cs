@@ -52,6 +52,7 @@ public class SalaAR : MonoBehaviour
         {
             pm.requestedDetectionMode = PlaneDetectionMode.Horizontal | PlaneDetectionMode.Vertical;
             pm.enabled = true;
+            pm.trackablesChanged.AddListener(AoMudarPlanos);
         }
         // chão virtual de reserva até aparecer um chão real
         chaoVirtual = new GameObject("ChaoVirtual");
@@ -62,6 +63,21 @@ public class SalaAR : MonoBehaviour
         chaoVirtual.transform.position = new Vector3(0f, AlturaChao() - 0.1f, 0f);
     }
 
+    // O prefab ARPlane do template desenha o véu azul de pontos sobre a sala. Os planos só servem de física/posição:
+    // forceRenderingOff vale mesmo que o template reative o renderer.
+    void EsconderVisual(ARPlane p)
+    {
+        foreach (var r in p.GetComponentsInChildren<Renderer>(true)) r.forceRenderingOff = !mostrarPlanos;
+    }
+
+    void AoMudarPlanos(ARTrackablesChangedEventArgs<ARPlane> e)
+    {
+        foreach (var p in e.added) EsconderVisual(p);
+        foreach (var p in e.updated) EsconderVisual(p);
+    }
+
+    void OnDestroy() { if (pm != null) pm.trackablesChanged.RemoveListener(AoMudarPlanos); }
+
     void Update()
     {
         if (pm == null || Time.time < proximaVarredura) return;
@@ -70,10 +86,7 @@ public class SalaAR : MonoBehaviour
         foreach (var p in pm.trackables)
         {
             if ((p.classifications & PlaneClassifications.Floor) != 0) temChaoReal = true;
-            var mr = p.GetComponent<MeshRenderer>();
-            if (mr != null && mr.enabled != mostrarPlanos) mr.enabled = mostrarPlanos;
-            var lr = p.GetComponent<LineRenderer>();
-            if (lr != null && lr.enabled != mostrarPlanos) lr.enabled = mostrarPlanos;
+            EsconderVisual(p);
             var mc = p.GetComponent<MeshCollider>();
             if (mc != null && mc.sharedMaterial != materialQuica) mc.sharedMaterial = materialQuica;
         }

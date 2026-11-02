@@ -391,9 +391,7 @@ public class GeradorModelo3D : MonoBehaviour
         conteudo.position += raiz.transform.position - b.center;
         b = LimitesMundo(conteudo);
 
-        var box = raiz.AddComponent<BoxCollider>();
-        box.center = raiz.transform.InverseTransformPoint(b.center);
-        box.size = b.size;
+        raiz.AddComponent<ColisorPegada>();   // caixa pelos bounds visíveis (antes do XRGrabInteractable)
         raiz.AddComponent<XRGrabInteractable>();
         InteracaoMaos.Aplicar(raiz);
 
@@ -404,7 +402,7 @@ public class GeradorModelo3D : MonoBehaviour
         Destroy(casca.GetComponent<Collider>());
         casca.name = "EntradaGrade";
         casca.transform.SetParent(raiz.transform, false);
-        casca.transform.localPosition = box.center;
+        casca.transform.localPosition = raiz.transform.InverseTransformPoint(b.center);
         casca.transform.localScale = b.size * 1.05f;
         CriadorHolograma.AplicarVisual(casca, HoloUtil.Ciano, new Vector2(4, 4), 0.6f, null, 0.15f);
         yield return new WaitForSeconds(0.7f);
