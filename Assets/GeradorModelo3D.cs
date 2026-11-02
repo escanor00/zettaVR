@@ -269,111 +269,12 @@ public class GeradorModelo3D : MonoBehaviour
         return sb.Length == 0 ? "objeto" : sb.ToString(0, Mathf.Min(sb.Length, 40));
     }
 
-    // ------------------------------------------------------------------ foto (Passthrough Camera API)
+    // ------------------------------------------------------------------ foto (Passthrough Camera API, em CameraOlhos)
     public IEnumerator CapturarFoto(Action<byte[]> ok, Action<string> erro)
     {
-#if UNITY_ANDROID && !UNITY_EDITOR
-        string[] perms = { "horizonos.permission.HEADSET_CAMERA", Permission.Camera };
-        bool tem = Permission.HasUserAuthorizedPermission(perms[0]) && Permission.HasUserAuthorizedPermission(perms[1]);
-        if (!tem)
-        {
-            bool respondeu = false;
-            var cb = new PermissionCallbacks();
-            cb.PermissionGranted += _ => { };
-            cb.PermissionDenied += _ => { };
-            cb.PermissionDeniedAndDontAskAgain += _ => { };
-            Permission.RequestUserPermissions(perms, cb);
-            float limite = Time.realtimeSinceStartup + 60f;
-            while (Time.realtimeSinceStartup < limite)
-            {
-                yield return new WaitForSeconds(0.5f);
-                if (Permission.HasUserAuthorizedPermission(perms[0]) && Permission.HasUserAuthorizedPermission(perms[1])) { respondeu = true; break; }
-            }
-            if (!respondeu) { erro("permissão da câmera negada"); yield break; }
-        }
-#endif
-        var dispositivos = WebCamTexture.devices;
-        if (dispositivos.Length == 0)
-        {
-            // sem câmera (ex.: editor): usa uma imagem de teste
-            if (Application.isEditor) { ok(ImagemDeTeste()); yield break; }
-            erro("nenhuma câmera encontrada"); yield break;
-        }
-        var dev = dispositivos[0];
-        int w = 1280, h = 960;
-        if (dev.availableResolutions != null && dev.availableResolutions.Length > 0)
-        {
-            float melhor = float.MaxValue;
-            foreach (var res in dev.availableResolutions)
-            {
-                float d = Mathf.Abs(res.width - 1280) + Mathf.Abs(res.height - 960);
-                if (d < melhor) { melhor = d; w = res.width; h = res.height; }
-            }
-        }
-        var cam = new WebCamTexture(dev.name, w, h, 30);
-        cam.Play();
-        float lim = Time.realtimeSinceStartup + 10f;
-        while ((cam.width < 32 || !cam.didUpdateThisFrame) && Time.realtimeSinceStartup < lim) yield return null;
-        if (cam.width < 32) { cam.Stop(); Destroy(cam); erro("a câmera não entregou imagem"); yield break; }
-        yield return new WaitForSeconds(0.6f); // exposição estabiliza
-
-        var cheia = new Texture2D(cam.width, cam.height, TextureFormat.RGBA32, false);
-        cheia.SetPixels32(cam.GetPixels32());
-        cheia.Apply();
-        cam.Stop();
-        Destroy(cam);
-
-        // recorte quadrado central (o objeto olhado fica no meio)
-        int lado = Mathf.RoundToInt(Mathf.Min(cheia.width, cheia.height) * 0.7f);
-        var recorte = new Texture2D(lado, lado, TextureFormat.RGB24, false);
-        recorte.SetPixels(cheia.GetPixels((cheia.width - lado) / 2, (cheia.height - lado) / 2, lado, lado));
-        recorte.Apply();
-        Destroy(cheia);
-        ok(Reduzir(recorte, ladoFoto));
-    }
-
-    byte[] Reduzir(Texture2D t, int lado)
-    {
-        if (t.width > lado)
-        {
-            var rt = RenderTexture.GetTemporary(lado, lado);
-            Graphics.Blit(t, rt);
-            var ant = RenderTexture.active;
-            RenderTexture.active = rt;
-            var r = new Texture2D(lado, lado, TextureFormat.RGB24, false);
-            r.ReadPixels(new Rect(0, 0, lado, lado), 0, 0);
-            r.Apply();
-            RenderTexture.active = ant;
-            RenderTexture.ReleaseTemporary(rt);
-            Destroy(t);
-            t = r;
-        }
-        var bytes = t.EncodeToJPG(92);
-        Destroy(t);
-        return bytes;
-    }
-
-    // imagem sintética para testes sem câmera: esfera vermelha com brilho num fundo claro
-    byte[] ImagemDeTeste()
-    {
-        const int n = 512;
-        var t = new Texture2D(n, n, TextureFormat.RGB24, false);
-        for (int y = 0; y < n; y++)
-            for (int x = 0; x < n; x++)
-            {
-                float dx = (x - n * 0.5f) / (n * 0.3f), dy = (y - n * 0.5f) / (n * 0.3f);
-                float d2 = dx * dx + dy * dy;
-                Color c = new Color(0.9f, 0.9f, 0.92f);
-                if (d2 < 1f)
-                {
-                    float nz = Mathf.Sqrt(1f - d2);
-                    float luz = Mathf.Clamp01(Vector3.Dot(new Vector3(dx, dy, nz), new Vector3(-0.4f, 0.5f, 0.75f).normalized));
-                    c = new Color(0.85f, 0.1f, 0.1f) * (0.35f + 0.65f * luz) + Color.white * Mathf.Pow(luz, 24f) * 0.5f;
-                }
-                t.SetPixel(x, y, c);
-            }
-        t.Apply();
-        return Reduzir(t, 512);
+        var cam = FindAnyObjectByType<CameraOlhos>();
+        if (cam == null) { erro("câmera indisponível"); yield break; }
+        yield return cam.Capturar(ok, erro, ladoFoto, true);
     }
 
     // ------------------------------------------------------------------ marcador "gerando..."

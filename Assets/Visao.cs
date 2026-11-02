@@ -20,21 +20,21 @@ public class Visao : MonoBehaviour
         "Você enxerga pela ferramenta olhar. Para 'o que é isso?', 'o que você vê?', 'leia isso' ou qualquer pergunta sobre o que está diante do usuário, " +
         "chame olhar e diga em uma frase curta que vai dar uma olhada; a imagem chegará logo em seguida e então você responde em português, de forma breve.";
 
-    public int ladoFoto = 768;
+    public int ladoFoto = 640;   // JPEG de baixa resolução (maior lado)
     AssistenteVoz voz;
-    GeradorModelo3D camera3D;
+    CameraOlhos olhos;
     bool ocupado;
 
     void Awake()
     {
         voz = FindAnyObjectByType<AssistenteVoz>();
-        camera3D = FindAnyObjectByType<GeradorModelo3D>();
+        olhos = FindAnyObjectByType<CameraOlhos>();
         if (voz != null) voz.RegistrarFerramenta(Decl, Olhar, Instrucao);
     }
 
     JObject Olhar(JObject args)
     {
-        if (camera3D == null) return new JObject { ["erro"] = "câmera indisponível" };
+        if (olhos == null) return new JObject { ["erro"] = "câmera indisponível" };
         if (ocupado) return new JObject { ["erro"] = "já estou olhando; espere um instante" };
         StartCoroutine(Fluxo(args.Value<string>("pergunta") ?? "o que é isso?"));
         return new JObject { ["result"] = "olhando; a imagem chegará em instantes" };
@@ -45,12 +45,13 @@ public class Visao : MonoBehaviour
         ocupado = true;
         byte[] foto = null;
         string erro = null;
-        yield return camera3D.CapturarFoto(b => foto = b, m => erro = m);
+        yield return olhos.Capturar(b => foto = b, m => erro = m, ladoFoto, false);
         ocupado = false;
         if (foto == null)
         {
             Debug.LogWarning("Visao: sem imagem: " + erro);
-            voz?.Falar("não consegui usar a câmera (" + (erro ?? "erro") + "). Avise o usuário em uma frase; se foi permissão, peça para aceitar o acesso às câmeras do headset.");
+            voz?.MostrarAviso(olhos.permissaoNegada ? "câmera negada" : "câmera: " + (erro ?? "erro"), 8f);
+            voz?.Falar("não consegui usar a câmera (" + (erro ?? "erro") + "). Avise o usuário em uma frase; se foi permissão negada, peça para liberar o acesso às câmeras do headset nas permissões do app.");
             yield break;
         }
         voz?.EnviarImagem(foto);
