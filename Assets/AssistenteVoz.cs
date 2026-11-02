@@ -518,7 +518,11 @@ public class AssistenteVoz : MonoBehaviour
                         : ferramentas.TryGetValue(nome, out var tratador) ? tratador(f["args"] as JObject ?? new JObject())
                         : aoChamarFuncao != null ? aoChamarFuncao(nome, f["args"] as JObject ?? new JObject()) : null;
                 }
-                catch (Exception e) { resp = new JObject { ["erro"] = e.Message }; }
+                catch (Exception e)
+                {
+                    Debug.LogWarning("AssistenteVoz: ferramenta falhou: " + Sanitizar(e.Message));
+                    resp = new JObject { ["erro"] = "deu um problema interno ao fazer isso; avise o usuário em português, em uma frase simples, sem detalhes técnicos, e sugira tentar de novo" };
+                }
                 respostas.Add(new JObject
                 {
                     ["id"] = f["id"],

@@ -1,5 +1,50 @@
 # PROGRESSO
 
+# ☀️ RESUMO DA MANHÃ (noite autônoma, fases 0 a 8)
+
+## O que ficou pronto (tudo compila; builds de conferência das fases 0–8 com 0 erros, git com commits e tags `fase-N`/`antes-fase-N`)
+- **Fase 0** segurança: chave do Gemini fora do código e da cena (asset `ZettaSegredos`, fora do git), `.gitignore`, git iniciado.
+- **Fase 1** base: passthrough forçado (`PassthroughMR`), template GoalManager desligado, vigia do microfone, reconexão sem fim, status visível, botão PARAR e pinça longa para interromper.
+- **Fase 2** utilidades: clima e notícias ao vivo, painéis com X, timers etc.
+- **Fase 3** mãos: pegar, escalar com duas mãos, arremessar, botões de toque.
+- **Fase 4** sala: planos/mesa, encaixe na mesa holográfica, âncoras.
+- **Fase 5** criação: formas novas (cápsula, cone, pirâmide, anel) e `editar_objeto` (mover/cor/tamanho/duplicar).
+- **Fase 6** olhos: `olhar` ("o que é isso?"), `gerar_modelo_3d`, `modelos_salvos`.
+- **Fase 7** sites: `criar_site`, `atualizar_site`, `listar_sites`, `abrir_site`, `apagar_site`.
+- **Fase 8** acabamento: limite de 24 hologramas, sombras desligadas, erros amigáveis.
+
+## O que falhou / ficou parcial
+- **Nada foi validado no óculos** (estava dormindo durante o teste): passthrough, microfone, mãos, câmera, âncoras e planos reais são só código + testes no editor.
+- Busca do Google indisponível no plano grátis (substituída por clima/notícias).
+- Geração 3D (TRELLIS.2/Shap-E) pode ser recusada pela cota anônima do Hugging Face; nunca rodou de ponta a ponta.
+- Publicação de sites no GitHub **não testada** (falta o token).
+- Pasta de backup `My project - backup fase 0` está incompleta; o git é a proteção real.
+- SpaceWarp e materiais compartilhados avaliados e não feitos (motivos na Fase 8).
+
+## O que você precisa fazer
+1. Instalar o último APK (`Builds/JarvisMR.apk`) no Quest: `adb install -r Builds/JarvisMR.apk` (o build atual já inclui a Fase 8).
+2. **GitHub (Fase 7):** criar conta/token como descrito na seção "Fase 7" e preencher `usuarioGitHub` e `tokenGitHub` no asset `Assets/Segredos/ZettaSegredos`; depois refazer o build.
+3. (Opcional) token do Hugging Face em `ZettaSegredos.tokenHuggingFace` se a cota anônima do 3D atrapalhar; hoje o código não o usa.
+4. Aceitar, na 1ª vez, as permissões de microfone e de câmeras do headset.
+
+## Testes no óculos, em ordem
+1. Abrir o app: deve mostrar a **sala (passthrough)**, nunca fundo azul. Se falhar, ver o painel CONEXÃO e `adb logcat -s Unity` (linhas `PassthroughMR:`).
+2. Dois toques no óculos: o app não deve pausar nem mostrar retângulo preto; o anel continua.
+3. Dizer "Zetta, olá": ela ouve e responde; conferir o rótulo de status embaixo do anel e o painel ASSISTENTE (nível do microfone).
+4. Pinça longa (~1 s) ou botão PARAR interrompem a fala.
+5. "Zetta, qual o clima em São Paulo?" e "notícias de tecnologia" (painel com X).
+6. "Crie um cubo azul", pegar com a mão, duas mãos para escalar, arremessar devagar.
+7. Botões holográficos por toque do dedo.
+8. "Ative a mesa" e soltar um objeto perto dela (encaixa).
+9. Fase 5: "crie um cone vermelho", "mova para a direita", "pinte de verde", "aumente isso", "duplique".
+10. Reabrir o app: objetos voltam no mesmo lugar (âncoras).
+11. Fase 6: "o que é isso?" apontando um objeto; "transforme isso em 3D" (espera 1–3 min ou aviso de cota); "mostre meus modelos".
+12. Fase 7 (só depois do token): "crie um site sobre…", "abra o site", "adicione…", "transforme em 3D", "liste meus sites", "apague o site".
+13. Fase 8: criar ~25 objetos, medir FPS, ler painéis em sala clara e escura.
+Detalhes e listas por fase mais abaixo neste arquivo.
+
+---
+
 ## Tarefa 0 — Remover Firebase (concluída)
 - Apagados: Assets/Firebase, Assets/GeneratedLocalRepo, Assets/Editor Default Resources/Firebase, Assets/Plugins/{iOS,tvOS}/Firebase, Assets/Plugins/Android/FirebaseApp.androidlib, google-services.json (Assets e StreamingAssets).
 - mainTemplate.gradle / settingsTemplate.gradle: removidas dependências e repositório local do Firebase; Force Resolve executado (templates regenerados limpos). Removidos também ProjectSettings/AndroidResolverDependencies.xml (cache) e as chaves firebaseAnalytics do GvhProjectSettings.xml.
@@ -288,3 +333,11 @@ Feito agora:
 - Testado no editor com a chave real do Gemini: criou um site de 22 KB, listou, recusou abrir não publicado, apagou. **A publicação no GitHub NÃO foi testada** (precisa do token).
 - **O que você precisa fazer (login/conta):** (1) criar conta no GitHub, se não tiver; (2) em Settings → Developer settings → Fine-grained tokens, criar um token; como o repositório `zetta-sites` só existe depois de criado, o jeito mais simples é criar antes um repositório público vazio `zetta-sites` e dar ao token acesso só a ele, com permissões "Contents: Read and write" e "Pages: Read and write" (e "Administration: Read and write" se quiser que o app crie o repositório sozinho); (3) abrir o asset `Assets/Segredos/ZettaSegredos` e preencher `usuarioGitHub` e `tokenGitHub` (nunca em arquivos versionados); (4) refazer o build.
 - Testes no óculos: (1) "Zetta, crie um site sobre o sistema solar"; (2) aguardar o aviso e "abra o site"; (3) "adicione uma seção sobre Marte"; (4) "transforme em 3D"; (5) "liste meus sites"; (6) "apague o site do sistema solar".
+
+## Fase 8 – Acabamento e desempenho (concluída no que dá sem o óculos)
+- `LimiteHologramas.cs`: no máximo 24 hologramas ao mesmo tempo; ao passar disso o mais antigo (que ninguém segura) é apagado com a animação normal. Testado no editor (limite 3, 5 formas → ficaram 3). Recriação das âncoras salvas não aciona o limite.
+- Sombras da luz direcional desligadas (os hologramas são sem iluminação; economiza GPU no Quest).
+- Erros de ferramentas: exceções internas agora viram uma mensagem em português para a Zetta ("deu um problema interno…") em vez do texto técnico em inglês; o detalhe vai só para o log. Os demais erros de ferramentas já eram em português.
+- Avaliado e NÃO feito: materiais compartilhados (cada holograma tem cor própria e `editar_objeto` muda a cor do material, então compartilhar quebraria isso); Application SpaceWarp (exige vetores de movimento; materiais transparentes/aditivos o tornam arriscado sem medir no óculos); perfil real de quadros/draw calls (precisa do óculos).
+- Revisão visual (cor, brilho, linhas, legibilidade em sala clara/escura) e medição de FPS: só no óculos.
+- Testes no óculos: (1) criar ~25 objetos e ver se o mais antigo some sem engasgar; (2) conferir FPS (Meta Quest Developer Hub ou OVR Metrics Tool); (3) ler os painéis em sala clara e escura e ajustar brilho/cores se preciso; (4) se houver engasgos, medir antes de ligar SpaceWarp.
