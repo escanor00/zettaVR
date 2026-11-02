@@ -201,6 +201,17 @@ public class AncorasHolo : MonoBehaviour
         finally { e.ocupado = false; }
     }
 
+    // cor/tamanho mudaram: atualiza o registro salvo e força nova gravação no próximo ciclo
+    public void MarcarAlterado(GameObject go)
+    {
+        var it = HoloRegistro.Buscar(go);
+        if (it == null || !estados.TryGetValue(go, out var e)) return;
+        e.reg.cor = it.cor;
+        e.reg.tamanho = it.tamanho;
+        e.reg.forma = it.forma;
+        e.posSalva = new Vector3(float.NaN, 0, 0);
+    }
+
     void AoRemover(GameObject go)
     {
         if (go == null || !estados.TryGetValue(go, out var e)) return;

@@ -265,3 +265,9 @@ Feito agora:
 4. "Zetta, solte": objetos caem e quicam na mesa/chão reais. "Zetta, flutue" volta ao normal.
 5. Deixar 2 objetos em lugares diferentes, fechar o app e abrir de novo: reaparecem no mesmo lugar (âncoras).
 6. "Zetta, desative a mesa": a plataforma some.
+
+## Fase 5 – Criação de hologramas (concluída em código)
+- Novas formas em `criar_objeto`: capsula, cone, piramide, anel (`FormasHolo.cs`, malhas procedurais).
+- Nova ferramenta por voz `editar_objeto` (`EditorObjetos.cs`): mover, cor, tamanho (5 cm–2 m), duplicar; alvo por descrição ou "isso" (objeto olhado). Alterações são regravadas nas âncoras (`AncorasHolo.MarcarAlterado`).
+- Testado no editor: 4 formas criadas; mover/cor/tamanho/duplicar OK.
+- Testes no óculos: (1) "Zetta, crie um cone vermelho"; (2) "crie um anel azul" e "uma pirâmide"; (3) "mova o cone para a direita"; (4) "pinte de verde"; (5) "aumente isso" olhando para um objeto; (6) "duplique o cubo"; (7) reabra o app e confira se cor/tamanho mudados persistiram.

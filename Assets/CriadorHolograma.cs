@@ -34,7 +34,7 @@ public class CriadorHolograma : MonoBehaviour
   ""parameters"": {
     ""type"": ""OBJECT"",
     ""properties"": {
-      ""forma"": { ""type"": ""STRING"", ""enum"": [""cubo"", ""esfera"", ""cilindro""], ""description"": ""Forma do objeto."" },
+      ""forma"": { ""type"": ""STRING"", ""enum"": [""cubo"", ""esfera"", ""cilindro"", ""capsula"", ""cone"", ""piramide"", ""anel""], ""description"": ""Forma do objeto."" },
       ""cor"": { ""type"": ""STRING"", ""description"": ""Cor em português (azul, vermelho, verde, amarelo, laranja, roxo, rosa, ciano, branco...) ou hexadecimal como #FF8800."" },
       ""tamanho"": { ""type"": ""NUMBER"", ""description"": ""Tamanho em metros (padrão 0.15)."" },
       ""posicao"": {
@@ -76,7 +76,11 @@ public class CriadorHolograma : MonoBehaviour
             case "cubo": tipo = PrimitiveType.Cube; tiling = new Vector2(4, 4); break;
             case "esfera": tipo = PrimitiveType.Sphere; tiling = new Vector2(16, 8); break;
             case "cilindro": tipo = PrimitiveType.Cylinder; tiling = new Vector2(16, 3); alturaEsc = 0.5f; break;
-            default: return new JObject { ["erro"] = "forma inválida; use cubo, esfera ou cilindro" };
+            case "capsula": tipo = PrimitiveType.Capsule; tiling = new Vector2(16, 6); alturaEsc = 0.5f; break;
+            case "cone": tipo = PrimitiveType.Cube; tiling = new Vector2(16, 4); break;
+            case "piramide": tipo = PrimitiveType.Cube; tiling = new Vector2(4, 3); break;
+            case "anel": tipo = PrimitiveType.Cube; tiling = new Vector2(24, 8); break;
+            default: return new JObject { ["erro"] = "forma inválida; use cubo, esfera, cilindro, capsula, cone, piramide ou anel" };
         }
 
         float tamanho = Mathf.Clamp(args.Value<float?>("tamanho") ?? 0.15f, tamanhoMin, tamanhoMax);
@@ -88,7 +92,19 @@ public class CriadorHolograma : MonoBehaviour
             local = new Vector3(p.Value<float?>("x") ?? 0f, p.Value<float?>("y") ?? -0.05f, p.Value<float?>("z") ?? 0.6f);
         var pos = posMundo ?? (cam.position + Quaternion.Euler(0f, cam.eulerAngles.y, 0f) * local);
 
-        var go = GameObject.CreatePrimitive(tipo);
+        GameObject go;
+        Mesh malhaProcedural = forma == "cone" ? FormasHolo.Cone(32) : forma == "piramide" ? FormasHolo.Cone(4)
+            : forma == "anel" ? FormasHolo.Anel() : null;
+        if (malhaProcedural != null)
+        {
+            go = new GameObject();
+            go.AddComponent<MeshFilter>().sharedMesh = malhaProcedural;
+            go.AddComponent<MeshRenderer>();
+            var mc = go.AddComponent<MeshCollider>();
+            mc.sharedMesh = malhaProcedural;
+            mc.convex = true;
+        }
+        else go = GameObject.CreatePrimitive(tipo);
         go.name = "Holograma_" + forma + "_" + (++contador);
         go.transform.SetParent(transform, true);
         go.transform.position = pos;
