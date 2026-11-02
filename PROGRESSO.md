@@ -201,3 +201,29 @@ Relato: app abria em fundo azul (VR) sem a sala; ao ativar a visão do sistema (
 ### D. Logcat
 - A 1ª captura foi feita com o headset **em repouso** (`mWakefulness=Asleep`, `sys.hmt.mounted=0`): o app só inicializa e é pausado; não prova nada sobre passthrough/mic. Útil só para confirmar o manifest, as extensões OpenXR e a sequência de pausa.
 - Para testar de verdade é preciso estar com o headset NA CABEÇA durante a captura.
+
+---
+# NOITE AUTÔNOMA (Fases 0–8 do PLANO-ZETTA.md)
+
+## Fase 0 — Preparação e segurança (concluída)
+- Backup em `C:\Users\luizg\My project - backup fase 0` (sem Library/Builds/Logs; foi feito antes de remover a chave, então a cena do backup ainda contém a chave — é só local, apague a pasta se quiser).
+- Git local iniciado (`main`), `.gitignore` de Unity + `Assets/Segredos/`. Commit inicial `Fase 0`; tag `antes-fase-1`.
+- A chave do Gemini estava na cena (2 componentes) e escrita no código de `TesteGemini.cs`. Agora vive só em `Assets/Segredos/ZettaSegredos.asset` (ScriptableObject `ZettaSegredos`, ignorado pelo git; também guarda `tokenGitHub`, `usuarioGitHub`, `tokenHuggingFace`). `AssistenteVoz` e `TesteGemini` leem de lá (campo `segredos`, já ligado na cena). Conferido: `git grep` não acha a chave.
+- Atenção: o APK leva o asset de segredos dentro (é inevitável para o app funcionar); não distribua o APK.
+
+## Fase 1 — Base sólida (código concluído; FALTA VALIDAR NO ÓCULOS)
+Parte já feita antes da noite (seção "Correção pós-teste no Quest" acima): `PassthroughMR` (desliga o tutorial do template que desligava o passthrough), watchdog do microfone, reconexão sem limite, estados do mic.
+Feito nesta fase:
+1. **Comparação com o OpenQuestCapture**: o repositório não documenta a configuração, então comparei o `AndroidManifest.xml` dele com o APK nosso. Nosso manifest final já tem tudo que o deles tem (`CAMERA`, `HEADSET_CAMERA`, `BOUNDARYLESS_APP`, `com.oculus.vr.focusaware`, `supportedDevices`, `headtracking`) e mais `PASSTHROUGH`, `RECORD_AUDIO`, `USE_SCENE`. Nada faltando.
+2. **Materiais**: todos os hologramas usam `Sprites/Default` (transparente, sem escrita de profundidade); os objetos opacos do template (controles, painel de vídeo) ficam inativos. Nenhum retângulo preto na cena; o retângulo do relato era a janela do app pausado.
+3. **Microfone/eco**: sem AEC acessível pelo `Microphone` do Unity, então o mic **fica mudo enquanto a Zetta fala** (+0,6 s) para ela não se ouvir. Para interromper: **pinça longa (~1 s)** com qualquer mão (`InterrupcaoPinca.cs`), que limpa o áudio e descarta o resto do turno. Limitação: não dá para interromper falando "Zetta, pare" enquanto ela fala. Dá para desligar com `silenciarMicEnquantoFala=false` em `AssistenteVoz` (aí volta o corte por voz, com risco de eco).
+4. **Status sempre visível**: rótulo pequeno embaixo do anel (`TextoStatus`): ouvindo / processando / falando / conectando / microfone negado / sem internet / erro: ...; mais o painel ASSISTENTE (mic, barrinhas de nível, "Ouvi: ...") e CONEXÃO (Gemini, erro, passthrough).
+5. **Logcat**: captura de arranque feita (OpenXR sobe, permissões e extensões ok, sem crash). Não foi possível confirmar passthrough/mic em uso real porque o headset estava em repouso.
+- Se o passthrough AINDA não aparecer no óculos: procure no logcat `PassthroughMR:` e `xrCreatePassthroughFB`; a opção B seria migrar para o Meta Spatial SDK, mas **não migrei** (decisão sua).
+
+### Testes no óculos — Fase 1
+1. Abrir o app: a sala deve aparecer sozinha, sem fundo azul e sem cartões de tutorial.
+2. Painel CONEXÃO mostra "passthrough ligado".
+3. Dizer "Zetta, que horas são?": rótulo vai de "ouvindo" → "processando" → "falando" → "ouvindo".
+4. Enquanto ela fala, segurar a pinça ~1 s: ela cala.
+5. Dois toques no óculos e voltar: o anel volta e o mic volta a "ouvindo" em ~3 s.

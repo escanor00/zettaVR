@@ -51,6 +51,25 @@ public class AssistenteVoz : MonoBehaviour
     public string ultimoOuvido = "";         // última transcrição da sua fala devolvida pela Gemini
     public string ultimoErro = "";
     bool processando, setupOk;
+    [Tooltip("Sem cancelamento de eco do Android, o mic fica mudo enquanto a Zetta fala (interrompe com pinça longa).")]
+    public bool silenciarMicEnquantoFala = true;
+    bool falando, descartarSaida;
+    float tempoFala;
+    TextMeshPro textoStatus;
+    RectTransform alvoStatus;
+    string statusMostrado;
+    public bool Falando => falando;
+
+    // Para a fala atual: limpa o áudio já recebido e ignora o resto do turno.
+    public void Interromper()
+    {
+        if (!falando && !processando) return;
+        Debug.Log("AssistenteVoz: fala interrompida pelo usuário.");
+        LimparReproducao();
+        descartarSaida = true;
+        processando = false;
+        novoTurno = true;
+    }
     int posVista = -1;
     float ultimoAvancoMic, inicioProcessando;
     bool microfonePermitido;
@@ -106,6 +125,7 @@ public class AssistenteVoz : MonoBehaviour
     IEnumerator Start()
     {
         CriarTexto();
+        if (GetComponent<InterrupcaoPinca>() == null) gameObject.AddComponent<InterrupcaoPinca>();
         fonte = gameObject.AddComponent<AudioSource>();
         fonte.clip = AudioClip.Create("voz", TaxaSaida, 1, TaxaSaida, true, LerPcm);
         fonte.loop = true;
@@ -339,6 +359,8 @@ public class AssistenteVoz : MonoBehaviour
         volumeSaida = Mathf.Lerp(volumeSaida, Mathf.Clamp01(rmsAtual * 4f), Time.deltaTime * 15f);
         if (volumeSaida > 0.02f) { ultimaAtividade = Time.time; acordada = true; }
         if (acordada && Time.time - ultimaAtividade > tempoAtivaSegundos) acordada = false;
+        falando = contagem > 0;
+        if (falando) tempoFala = Time.time;
         if (clipMic != null)
         {
             VigiarMicrofone();
@@ -346,8 +368,27 @@ public class AssistenteVoz : MonoBehaviour
             if (processando && Time.time - inicioProcessando > 20f) processando = false;
             if (!pronto) estadoMic = "conectando";
             else if (Time.realtimeSinceStartup - ultimoAvancoMic > 1f) estadoMic = "microfone parado";
-            else estadoMic = processando ? "processando" : "ouvindo";
+            else estadoMic = falando ? "falando" : processando ? "processando" : "ouvindo";
         }
+        AtualizarStatusVisivel();
+    }
+
+    // Rótulo pequeno e sempre visível embaixo do anel.
+    void AtualizarStatusVisivel()
+    {
+        if (textoStatus == null) return;
+        string s;
+        Color cor = new Color(0.2f, 0.9f, 1f, 0.8f);
+        if (Application.internetReachability == NetworkReachability.NotReachable) { s = "sem internet"; cor = new Color(1f, 0.6f, 0.2f); }
+        else if (estadoMic == "microfone negado" || estadoMic == "sem microfone" || estadoMic == "erro no microfone")
+        { s = estadoMic; cor = new Color(1f, 0.4f, 0.3f); }
+        else if (!pronto && !string.IsNullOrEmpty(ultimoErro))
+        { s = "erro: " + (ultimoErro.Length > 34 ? ultimoErro.Substring(0, 34) : ultimoErro); cor = new Color(1f, 0.4f, 0.3f); }
+        else s = estadoMic;
+        if (s == statusMostrado) return;
+        statusMostrado = s;
+        textoStatus.text = s;
+        textoStatus.color = cor;
     }
 
     float pausadoEm;
@@ -397,6 +438,7 @@ public class AssistenteVoz : MonoBehaviour
         {
             if (sc["interrupted"] != null && (bool)sc["interrupted"])
             {
+                descartarSaida = false;
                 LimparReproducao();
                 novoTurno = true;
             }
@@ -416,7 +458,7 @@ public class AssistenteVoz : MonoBehaviour
                 inicioProcessando = Time.time;
             }
             // sem a palavra de ativação, qualquer áudio/texto do modelo é descartado
-            bool emEspera = !acordada && entradaTurno.Trim().Length >= 4;
+            bool emEspera = (!acordada && entradaTurno.Trim().Length >= 4) || descartarSaida;
             var partes = sc["modelTurn"]?["parts"] as JArray;
             if (partes != null && !emEspera)
                 foreach (var p in partes)
@@ -442,6 +484,7 @@ public class AssistenteVoz : MonoBehaviour
                 if (entradaTurno.Trim().Length > 0)
                     Debug.Log("AssistenteVoz: ouvi [" + (acordada ? "Zetta reconhecida" : "sem a palavra Zetta") + "] \"" + Sanitizar(entradaTurno.Trim()) + "\"");
                 processando = false;
+                descartarSaida = false;
                 novoTurno = true;
                 novoTurnoEntrada = true;
                 ultimaAtividade = Time.time;
@@ -503,7 +546,8 @@ public class AssistenteVoz : MonoBehaviour
         for (int k = 0; k < tmp.Length; k++) soma += tmp[k] * tmp[k];
         float rms = tmp.Length > 0 ? Mathf.Sqrt(soma / tmp.Length) : 0f;
         nivelMic = Mathf.Lerp(nivelMic, Mathf.Clamp01(rms * 8f), 0.5f);
-        if (!pronto) { bufferMic.Clear(); return; }
+        bool silenciado = silenciarMicEnquantoFala && (falando || Time.time - tempoFala < 0.6f);
+        if (!pronto || silenciado) { bufferMic.Clear(); return; }
         bufferMic.AddRange(tmp);
 
         const int bloco = TaxaEntrada / 10; // 100 ms
@@ -614,6 +658,28 @@ public class AssistenteVoz : MonoBehaviour
         texto.fontSizeMin = 0.05f;
         texto.fontSizeMax = 0.5f;
         texto.text = "Iniciando...";
+
+        // rótulo de status pequeno embaixo do anel
+        var existenteStatus = GameObject.Find("TextoStatus");
+        if (existenteStatus != null) Destroy(existenteStatus);
+        var objStatus = new GameObject("TextoStatus");
+        objStatus.transform.position = AlvoStatus(cam);
+        objStatus.transform.rotation = Quaternion.LookRotation(objStatus.transform.position - cam.position);
+        textoStatus = objStatus.AddComponent<TextMeshPro>();
+        alvoStatus = textoStatus.rectTransform;
+        alvoStatus.sizeDelta = new Vector2(0.4f, 0.05f);
+        textoStatus.alignment = TextAlignmentOptions.Center;
+        textoStatus.textWrappingMode = TextWrappingModes.NoWrap;
+        textoStatus.fontSize = 0.07f;
+        textoStatus.color = new Color(0.2f, 0.9f, 1f, 0.8f);
+        textoStatus.text = "";
+    }
+
+    Vector3 AlvoStatus(Transform cam)
+    {
+        float x = 0f, y = -0.2f, d = distancia;
+        if (anelRef != null) { x = anelRef.deslocamento.x; y = anelRef.deslocamento.y - 0.11f; d = anelRef.distancia; }
+        return cam.position + cam.forward * d + cam.right * x + cam.up * y;
     }
 
     Vector3 AlvoTexto(Transform cam)
@@ -633,6 +699,12 @@ public class AssistenteVoz : MonoBehaviour
     {
         if (alvoTexto == null || Camera.main == null) return;
         var cam = Camera.main.transform;
+        if (alvoStatus != null)
+        {
+            alvoStatus.position = Vector3.Lerp(alvoStatus.position, AlvoStatus(cam), Time.deltaTime * 2f);
+            alvoStatus.rotation = Quaternion.Slerp(alvoStatus.rotation,
+                Quaternion.LookRotation(alvoStatus.position - cam.position), Time.deltaTime * 4f);
+        }
         alvoTexto.position = Vector3.Lerp(alvoTexto.position, AlvoTexto(cam), Time.deltaTime * 2f);
         alvoTexto.rotation = Quaternion.Slerp(alvoTexto.rotation,
             Quaternion.LookRotation(alvoTexto.position - cam.position), Time.deltaTime * 4f);
