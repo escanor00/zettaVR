@@ -12,6 +12,8 @@ public class CameraOlhos : MonoBehaviour
 {
     public string ultimoErro = "";     // última falha (também mostrada no rótulo do anel por quem chama)
     public bool permissaoNegada;
+    public bool mostrarMiniatura = true;   // miniatura holográfica da foto por 5 s (diagnóstico); desligue quando não precisar
+    public float limiarBrilho = 0.03f;     // abaixo disso a imagem é considerada preta
 
     // lado: maior dimensão do JPEG em pixels. recorteCentral: true = quadrado central (objeto olhado), false = quadro inteiro.
     public IEnumerator Capturar(Action<byte[]> ok, Action<string> erro, int lado = 1024, bool recorteCentral = true)
@@ -44,6 +46,9 @@ public class CameraOlhos : MonoBehaviour
         for (float t = 0; WebCamTexture.devices.Length == 0 && t < 5f; t += 0.5f) yield return new WaitForSeconds(0.5f);
 #endif
         var dispositivos = WebCamTexture.devices;
+        var nomes = new System.Text.StringBuilder();
+        foreach (var d in dispositivos) nomes.Append("[" + d.name + (d.isFrontFacing ? " frontal" : "") + "] ");
+        Debug.Log("CameraOlhos: " + dispositivos.Length + " câmeras: " + nomes);
         if (dispositivos.Length == 0)
         {
             if (Application.isEditor) { ok(ImagemDeTeste()); yield break; }
@@ -52,49 +57,135 @@ public class CameraOlhos : MonoBehaviour
             yield break;
         }
 
-        var dev = dispositivos[0];
-        int w = 1280, h = 960;
-        if (dev.availableResolutions != null && dev.availableResolutions.Length > 0)
+        // tenta cada câmera; a primeira que entregar imagem com brilho acima do limiar vale
+        Texture2D origem = null;
+        float brilhoFinal = 0f;
+        for (int di = 0; di < dispositivos.Length && origem == null; di++)
         {
-            float melhor = float.MaxValue;
-            foreach (var res in dev.availableResolutions)
+            var dev = dispositivos[di];
+            int w = 1280, h = 960;
+            if (dev.availableResolutions != null && dev.availableResolutions.Length > 0)
             {
-                float d = Mathf.Abs(res.width - 1280) + Mathf.Abs(res.height - 960);
-                if (d < melhor) { melhor = d; w = res.width; h = res.height; }
+                float melhor = float.MaxValue;
+                foreach (var res in dev.availableResolutions)
+                {
+                    float d = Mathf.Abs(res.width - 1280) + Mathf.Abs(res.height - 960);
+                    if (d < melhor) { melhor = d; w = res.width; h = res.height; }
+                }
             }
-        }
-        var cam = new WebCamTexture(dev.name, w, h, 30);
-        cam.Play();
-        float lim = Time.realtimeSinceStartup + 10f;
-        while ((cam.width < 32 || !cam.didUpdateThisFrame) && Time.realtimeSinceStartup < lim) yield return null;
-        if (cam.width < 32)
-        {
+            var cam = new WebCamTexture(dev.name, w, h, 30);
+            cam.Play();
+            float lim = Time.realtimeSinceStartup + 6f;
+            while (cam.width < 32 && Time.realtimeSinceStartup < lim) yield return null;
+            if (cam.width < 32)
+            {
+                Debug.LogWarning("CameraOlhos: '" + dev.name + "' não entregou imagem");
+                cam.Stop(); Destroy(cam);
+                continue;
+            }
+
+            // aquecimento: descarta os primeiros quadros e espera até ~2 s; até 3 tentativas de brilho
+            int quadros = 0;
+            float fimAquecimento = Time.realtimeSinceStartup + 2f;
+            while (Time.realtimeSinceStartup < fimAquecimento)
+            {
+                if (cam.didUpdateThisFrame) quadros++;
+                if (quadros >= 12) break;
+                yield return null;
+            }
+            for (int t = 0; t < 3 && origem == null; t++)
+            {
+                if (t > 0) yield return new WaitForSeconds(0.5f);
+                var copia = CopiarParaTextura(cam);
+                float b = BrilhoMedio(copia);
+                Debug.Log("CameraOlhos: '" + dev.name + "' " + cam.width + "x" + cam.height + " tentativa " + (t + 1) + " brilho médio " + b.ToString("0.000"));
+                if (b >= limiarBrilho) { origem = copia; brilhoFinal = b; }
+                else Destroy(copia);
+            }
             cam.Stop();
             Destroy(cam);
+        }
+
+        if (origem == null)
+        {
             if (Application.isEditor) { ok(ImagemDeTeste()); yield break; }   // o simulador XR lista câmeras falsas
-            ultimoErro = "a câmera não entregou imagem";
+            ultimoErro = "imagem da câmera preta";
             erro(ultimoErro);
             yield break;
         }
-        yield return new WaitForSeconds(0.6f);   // exposição estabiliza
 
-        var cheia = new Texture2D(cam.width, cam.height, TextureFormat.RGBA32, false);
-        cheia.SetPixels32(cam.GetPixels32());
-        cheia.Apply();
-        cam.Stop();
-        Destroy(cam);
-
-        Texture2D origem = cheia;
         if (recorteCentral)
         {
-            int q = Mathf.RoundToInt(Mathf.Min(cheia.width, cheia.height) * 0.7f);
+            int q = Mathf.RoundToInt(Mathf.Min(origem.width, origem.height) * 0.7f);
             var recorte = new Texture2D(q, q, TextureFormat.RGB24, false);
-            recorte.SetPixels(cheia.GetPixels((cheia.width - q) / 2, (cheia.height - q) / 2, q, q));
+            recorte.SetPixels(origem.GetPixels((origem.width - q) / 2, (origem.height - q) / 2, q, q));
             recorte.Apply();
-            Destroy(cheia);
+            Destroy(origem);
             origem = recorte;
         }
-        ok(ReduzirParaJpeg(origem, lado));
+        var jpeg = ReduzirParaJpeg(origem, lado);
+        SalvarDiagnostico(jpeg, brilhoFinal);
+        ok(jpeg);
+    }
+
+    // Blit da WebCamTexture para uma RenderTexture + ReadPixels (mais confiável que GetPixels32 no Quest)
+    static Texture2D CopiarParaTextura(WebCamTexture cam)
+    {
+        var rt = RenderTexture.GetTemporary(cam.width, cam.height, 0, RenderTextureFormat.ARGB32);
+        Graphics.Blit(cam, rt);
+        var ant = RenderTexture.active;
+        RenderTexture.active = rt;
+        var t = new Texture2D(cam.width, cam.height, TextureFormat.RGB24, false);
+        t.ReadPixels(new Rect(0, 0, cam.width, cam.height), 0, 0);
+        t.Apply();
+        RenderTexture.active = ant;
+        RenderTexture.ReleaseTemporary(rt);
+        return t;
+    }
+
+    // média da luminância (0–1) numa grade de ~48x48 amostras
+    static float BrilhoMedio(Texture2D t)
+    {
+        float soma = 0; int n = 0;
+        for (int y = 0; y < 48; y++)
+            for (int x = 0; x < 48; x++)
+            {
+                var c = t.GetPixel(x * (t.width - 1) / 47, y * (t.height - 1) / 47);
+                soma += 0.299f * c.r + 0.587f * c.g + 0.114f * c.b;
+                n++;
+            }
+        return soma / n;
+    }
+
+    // guarda a última foto, registra o brilho e mostra uma miniatura holográfica por 5 s ao lado do anel
+    void SalvarDiagnostico(byte[] jpeg, float brilho)
+    {
+        try { System.IO.File.WriteAllBytes(System.IO.Path.Combine(Application.persistentDataPath, "ultima_foto.jpg"), jpeg); }
+        catch (Exception e) { Debug.LogWarning("CameraOlhos: não salvou a foto: " + e.Message); }
+        Debug.Log("CameraOlhos: foto " + jpeg.Length / 1024 + " KB, brilho médio " + brilho.ToString("0.000") + " → " + Application.persistentDataPath + "/ultima_foto.jpg");
+        if (mostrarMiniatura) StartCoroutine(Miniatura(jpeg));
+    }
+
+    IEnumerator Miniatura(byte[] jpeg)
+    {
+        var tex = new Texture2D(2, 2);
+        if (!tex.LoadImage(jpeg)) { Destroy(tex); yield break; }
+        var anel = FindAnyObjectByType<AnelHolografico>();
+        var cam = Camera.main != null ? Camera.main.transform : null;
+        var ancora = anel != null ? anel.transform.position : (cam != null ? cam.position + cam.forward * 0.8f : Vector3.zero);
+        var go = GameObject.CreatePrimitive(PrimitiveType.Quad);
+        go.name = "MiniaturaFoto";
+        Destroy(go.GetComponent<Collider>());
+        float asp = (float)tex.width / tex.height;
+        go.transform.localScale = new Vector3(0.14f * asp, 0.14f, 1f);
+        go.transform.position = ancora + (cam != null ? cam.right : Vector3.right) * 0.2f;
+        go.transform.rotation = HoloUtil.OlharParaUsuario(go.transform.position);
+        var m = HoloUtil.NovoMaterialSprite(Color.white);
+        m.mainTexture = tex;
+        go.GetComponent<Renderer>().material = m;
+        yield return new WaitForSeconds(5f);
+        Destroy(go);
+        Destroy(tex);
     }
 
     // reduz mantendo a proporção (maior dimensão = lado) e codifica em JPEG
