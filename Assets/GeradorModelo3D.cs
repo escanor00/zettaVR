@@ -143,7 +143,7 @@ public class GeradorModelo3D : MonoBehaviour
         // 4) salva e carrega
         string pasta = Path.Combine(Application.persistentDataPath, "Modelos3D");
         Directory.CreateDirectory(pasta);
-        string caminho = Path.Combine(pasta, "modelo_" + DateTime.Now.Ticks + ".glb");
+        string caminho = Path.Combine(pasta, NomeArquivo(nome) + "_" + DateTime.Now.Ticks + ".glb");
         File.WriteAllBytes(caminho, glb);
         var raiz = CriarRaizGlb(pos, rot, caminho, nome, tamanhoFinal, true);
         ocupado = false;
@@ -181,8 +181,17 @@ public class GeradorModelo3D : MonoBehaviour
         return await c.Baixar(r[0]);
     }
 
+    // nome do arquivo = descrição sem caracteres inválidos (a biblioteca de modelos lê o nome daqui)
+    static string NomeArquivo(string nome)
+    {
+        var sb = new System.Text.StringBuilder();
+        foreach (char c in nome.Trim())
+            if (char.IsLetterOrDigit(c) || c == ' ') sb.Append(c == ' ' ? '-' : c);
+        return sb.Length == 0 ? "objeto" : sb.ToString(0, Mathf.Min(sb.Length, 40));
+    }
+
     // ------------------------------------------------------------------ foto (Passthrough Camera API)
-    IEnumerator CapturarFoto(Action<byte[]> ok, Action<string> erro)
+    public IEnumerator CapturarFoto(Action<byte[]> ok, Action<string> erro)
     {
 #if UNITY_ANDROID && !UNITY_EDITOR
         string[] perms = { "horizonos.permission.HEADSET_CAMERA", Permission.Camera };

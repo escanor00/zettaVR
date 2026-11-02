@@ -418,6 +418,16 @@ public class AssistenteVoz : MonoBehaviour
             .ToString(Newtonsoft.Json.Formatting.None));
     }
 
+    // Envia um quadro (JPEG) para a Gemini Live; ela o usa como contexto da próxima resposta.
+    public void EnviarImagem(byte[] jpeg)
+    {
+        if (!pronto || jpeg == null || jpeg.Length == 0) return;
+        EnviarSemEsperar(new JObject
+        {
+            ["realtimeInput"] = new JObject { ["video"] = new JObject { ["mimeType"] = "image/jpeg", ["data"] = Convert.ToBase64String(jpeg) } }
+        }.ToString(Newtonsoft.Json.Formatting.None));
+    }
+
     void TratarMensagem(string json)
     {
         JObject m;

@@ -271,3 +271,12 @@ Feito agora:
 - Nova ferramenta por voz `editar_objeto` (`EditorObjetos.cs`): mover, cor, tamanho (5 cm–2 m), duplicar; alvo por descrição ou "isso" (objeto olhado). Alterações são regravadas nas âncoras (`AncorasHolo.MarcarAlterado`).
 - Testado no editor: 4 formas criadas; mover/cor/tamanho/duplicar OK.
 - Testes no óculos: (1) "Zetta, crie um cone vermelho"; (2) "crie um anel azul" e "uma pirâmide"; (3) "mova o cone para a direita"; (4) "pinte de verde"; (5) "aumente isso" olhando para um objeto; (6) "duplique o cubo"; (7) reabra o app e confira se cor/tamanho mudados persistiram.
+
+## Fase 6 – Olhos da Zetta e 3D realista (concluída em código)
+- Câmera: Passthrough Camera API via `WebCamTexture` (Unity 6 + Quest), permissões `horizonos.permission.HEADSET_CAMERA` e `CAMERA` pedidas em tempo de execução (já estão no manifesto). Código em `GeradorModelo3D.CapturarFoto` (agora público e reaproveitado).
+- Visão: `Visao.cs`, ferramenta `olhar` ("Zetta, o que é isso?"): tira o quadro, envia à Gemini Live (`AssistenteVoz.EnviarImagem`, `realtimeInput.video` JPEG) e pede a resposta em português.
+- TRELLIS.2: `gerar_modelo_3d` (origem olhando/descricao) já existia: holograma "gerando..." com contador, aviso por voz, glTFast, escala ~30 cm, interações e âncora; cota cheia → avisa e sugere tentar depois. Reserva texto→3D: Shap-E. **Limite conhecido:** a cota anônima do ZeroGPU (sem token do Hugging Face) pode recusar a geração; não testado de ponta a ponta.
+- Biblioteca: `BibliotecaModelos.cs`, ferramenta `modelos_salvos` (listar/mostrar). Os .glb agora são salvos como `<nome>_<ticks>.glb` em `Modelos3D`. Modelos gerados antes desta versão (nome `modelo_...`) aparecem como "modelo".
+- Testado no editor: `olhar` (imagem de teste) e `listar` vazio sem erros; "mostrar" não foi testado (não há .glb para testar).
+- Testes no óculos: (1) aceitar a permissão de câmeras na 1ª vez; (2) olhar um objeto e dizer "Zetta, o que é isso?"; (3) "Zetta, leia isso" apontando para um texto; (4) "Zetta, transforme isso em 3D" e aguardar 1–3 min (ou aviso de cota); (5) "Zetta, crie uma poltrona vermelha realista"; (6) "Zetta, mostre meus modelos" e "mostre o primeiro".
+- Para o usuário (opcional): se a cota anônima esgotar, criar um token do Hugging Face e colocar em `ZettaSegredos.tokenHuggingFace` (hoje não é usado pelo código).
