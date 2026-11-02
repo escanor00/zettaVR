@@ -1,5 +1,12 @@
 # PROGRESSO
 
+# 🌙 RESUMO DA RODADA 2 (autônoma)
+- **Feitas e commitadas** (cada uma com Console sem erros e build Android de conferência com 0 erros): tarefas 6 (frases cortadas: NO_INTERRUPTION + mic fechado durante o turno), 7 (visão com `CameraOlhos` + permissões), 8 (apagar objetos: ids, `listar_objetos`, sinônimos, desenhos, "isso" pela mão/olhar), 9 (notas holográficas que grudam em paredes/mesas e têm âncora), 10 (`AVALIACAO.md`). Tarefas 0–5 já estavam prontas.
+- **Nada foi instalado no Quest** (como pedido): o APK instalado ainda é o do commit `e156519`. Tudo desta rodada só foi testado no editor.
+- **Você precisa:** instalar o APK novo (`adb install -r Builds/JarvisMR.apk`), girar o token do GitHub (foi colado em arquivo antes de ir para o asset) e seguir a lista de testes no fim de `AVALIACAO.md`.
+- **Parcial/riscos:** eco da voz (sem AEC real), 3D depende de cota gratuita, câmera/planos/âncoras/mãos só validam no óculos. Detalhes por tarefa na seção "RODADA 2" no fim deste arquivo.
+
+
 # 🌐 ESTÚDIO DE SITES – PUBLICAÇÃO NO GITHUB PAGES (testada de verdade)
 
 ## Pronto
