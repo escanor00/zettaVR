@@ -81,6 +81,9 @@ public class EsferaZetta : MonoBehaviour
     // chama/núcleo na mesma cor da esfera (só um pouco mais clara), nunca branca
     static Color Nucleo(Paleta p) { return Color.Lerp(p.borda, Color.white, 0.22f); }
 
+    // rajada curta de faíscas (ex.: ao abrir a central), sem mexer no estado da esfera
+    public void Realcar() { rajada = Mathf.Max(rajada, 0.7f); }
+
     public JObject MudarCor(JObject args)
     {
         string c = ApagadorHolo.Normalizar(args.Value<string>("cor") ?? "").Trim();

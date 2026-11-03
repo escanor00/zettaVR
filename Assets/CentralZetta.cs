@@ -70,6 +70,8 @@ public class CentralZetta : MonoBehaviour
         raiz.rotation = HoloUtil.OlharParaUsuario(pos);
         raiz.gameObject.SetActive(true);
         AtualizarTextos();
+        var esfera = FindAnyObjectByType<EsferaZetta>();
+        if (esfera != null) esfera.Realcar();
         StopAllCoroutines();
         StartCoroutine(Entrada());
     }

@@ -731,6 +731,7 @@ public class AssistenteVoz : MonoBehaviour
         obj.transform.position = AlvoTexto(cam);
         obj.transform.rotation = Quaternion.LookRotation(obj.transform.position - cam.position);
         texto = obj.AddComponent<TextMeshPro>();
+        if (TemaZetta.Fonte != null) texto.font = TemaZetta.Fonte;
         // AddComponent troca o Transform por RectTransform: guarda a referência nova
         alvoTexto = texto.rectTransform;
         texto.alignment = TextAlignmentOptions.Center;
@@ -751,6 +752,7 @@ public class AssistenteVoz : MonoBehaviour
         objStatus.transform.position = AlvoStatus(cam);
         objStatus.transform.rotation = Quaternion.LookRotation(objStatus.transform.position - cam.position);
         textoStatus = objStatus.AddComponent<TextMeshPro>();
+        if (TemaZetta.Fonte != null) textoStatus.font = TemaZetta.Fonte;
         alvoStatus = textoStatus.rectTransform;
         alvoStatus.sizeDelta = new Vector2(0.4f, 0.05f);
         textoStatus.alignment = TextAlignmentOptions.Center;
