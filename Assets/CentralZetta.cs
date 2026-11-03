@@ -51,18 +51,28 @@ public class CentralZetta : MonoBehaviour
         voz = FindAnyObjectByType<AssistenteVoz>();
         if (voz == null) return;
         voz.RegistrarFerramenta(DeclAbrir, args => { Abrir(); return new JObject { ["result"] = "central aberta" }; }, Instrucao);
-        voz.RegistrarFerramenta(DeclFechar, args => { Fechar(); return new JObject { ["result"] = "central fechada" }; });
+        voz.RegistrarFerramenta(DeclFechar, args => { Fechar("voz"); return new JObject { ["result"] = "central fechada" }; });
     }
 
     void OnDestroy() { if (Instancia == this) Instancia = null; }
 
-    public void Alternar() { if (aberta) Fechar(); else Abrir(); }
+    float ultimaAbertura = -10f, ultimoAlternar = -10f;
+
+    // pinça na esfera: ignora repiques da detecção de pinça (1,5 s) e nunca fecha logo depois de abrir (3 s)
+    public void Alternar()
+    {
+        if (Time.time - ultimoAlternar < 1.5f) return;
+        ultimoAlternar = Time.time;
+        if (aberta) { if (Time.time - ultimaAbertura > 3f) Fechar("pinça"); }
+        else Abrir();
+    }
 
     public void Abrir()
     {
         if (aberta || Camera.main == null) return;
         if (raiz == null) Montar();
         aberta = true;
+        ultimaAbertura = Time.time;
         ultimaAtividade = Time.time;
         BotaoHolo.UltimaInteracao = Time.time;
         var pos = HoloUtil.PontoNaVista(new Vector3(0f, 0f, distancia));
@@ -76,9 +86,10 @@ public class CentralZetta : MonoBehaviour
         StartCoroutine(Entrada());
     }
 
-    public void Fechar()
+    public void Fechar(string motivo = "")
     {
         if (!aberta) return;
+        Debug.Log("CentralZetta: fechada (" + motivo + ")");
         aberta = false;
         StopAllCoroutines();
         StartCoroutine(Saida());
@@ -158,7 +169,7 @@ public class CentralZetta : MonoBehaviour
     void MontarBarra(Transform p)
     {
         BotaoHolo.Criar(p, "PARAR", new Vector3(-0.215f, 0.005f, -0.004f), new Vector2(0.12f, 0.055f), () => { if (voz != null) voz.Interromper(); });
-        BotaoHolo.Criar(p, "FECHAR", new Vector3(0.215f, 0.005f, -0.004f), new Vector2(0.12f, 0.055f), () => Fechar());
+        BotaoHolo.Criar(p, "FECHAR", new Vector3(0.215f, 0.005f, -0.004f), new Vector2(0.12f, 0.055f), () => Fechar("botão FECHAR"));
 
         // microfone ao centro: círculo de vidro + ícone + medidor de nível
         var mic = HoloUtil.CriarPainel(p, "Mic", new Vector2(0.075f, 0.075f));
@@ -212,7 +223,7 @@ public class CentralZetta : MonoBehaviour
         StartCoroutine(FecharEm(0.5f));
     }
 
-    IEnumerator FecharEm(float s) { yield return new WaitForSeconds(s); Fechar(); }
+    IEnumerator FecharEm(float s) { yield return new WaitForSeconds(s); Fechar("após app"); }
 
     // ---------- atualização ----------
     void Update()
@@ -220,7 +231,7 @@ public class CentralZetta : MonoBehaviour
         if (!aberta || raiz == null) return;
         if (voz != null && voz.Falando) ultimaAtividade = Time.time;
         ultimaAtividade = Mathf.Max(ultimaAtividade, BotaoHolo.UltimaInteracao);
-        if (Time.time - ultimaAtividade > segundosParaRecolher) { Fechar(); return; }
+        if (Time.time - ultimaAtividade > segundosParaRecolher) { Fechar("15 s sem interação"); return; }
 
         AtualizarMedidor();
         if (Time.time < proximaAtualizacao) return;
