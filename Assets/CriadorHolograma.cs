@@ -20,10 +20,10 @@ public class CriadorHolograma : MonoBehaviour
     {
         { "azul", new Color(0.1f, 0.4f, 1f) }, { "vermelho", new Color(1f, 0.15f, 0.15f) },
         { "verde", new Color(0.1f, 1f, 0.3f) }, { "amarelo", new Color(1f, 0.92f, 0.1f) },
-        { "laranja", new Color(1f, 0.5f, 0.05f) }, { "roxo", new Color(0.6f, 0.2f, 1f) },
-        { "violeta", new Color(0.6f, 0.2f, 1f) }, { "rosa", new Color(1f, 0.4f, 0.75f) },
-        { "ciano", new Color(0.1f, 0.95f, 1f) }, { "branco", Color.white },
-        { "magenta", new Color(1f, 0.1f, 0.9f) }, { "dourado", new Color(1f, 0.78f, 0.2f) },
+        { "laranja", new Color(1f, 0.5f, 0.05f) }, { "roxo", TemaZetta.Roxo },
+        { "violeta", TemaZetta.Roxo }, { "rosa", new Color(1f, 0.4f, 0.75f) },
+        { "ciano", TemaZetta.AzulTec }, { "branco", Color.white },
+        { "magenta", new Color(1f, 0.1f, 0.9f) }, { "dourado", TemaZetta.Dourado },
         { "marrom", new Color(0.6f, 0.35f, 0.15f) }, { "cinza", new Color(0.65f, 0.65f, 0.7f) },
         { "preto", new Color(0.15f, 0.15f, 0.2f) }
     };
