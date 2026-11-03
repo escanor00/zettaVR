@@ -1,5 +1,28 @@
 # PROGRESSO
 
+# 🎨 RELATÓRIO FINAL — REDESIGN ZETTA (Direção B: assistente espacial sofisticado)
+1. **Resumo:** o visual passou a ter um sistema único (tema + shader de vidro + fonte), os painéis viraram vidro holográfico e nasceu a **central sob demanda** (cabeçalho, aplicativos, barra de comandos). Em repouso só a esfera e o rótulo de status dela aparecem. Nada de lógica foi alterado (voz/Gemini, mãos, câmeras, âncoras, 3D, Meta SDK não instalado). Nenhum push, nada publicado, nada instalado no Quest.
+2. **Melhorias visuais:** paleta oficial (`TemaZetta`), vidro com translucidez + borda + gradiente + realce no shader (sem desfoque nem pós-processamento), fonte Rajdhani SemiBold (OFL) com acentos, ícones de traço fino, tempos de animação padronizados.
+3. **Esfera:** preservada integralmente (10 anéis, fragmentos, faíscas, espiral, estados, cor por voz e persistência). Só: rótulos (fala/status) na fonte do tema e rajada de faíscas ao abrir a central (`EsferaZetta.Realcar`). Continua pequena no canto inferior direito, seguindo o olhar.
+4. **Painéis:** `HoloUtil.CriarPainel` agora gera vidro (afeta Info, Timers e Botões); botões com ícone e brilho ao tocar; Timers piscam dourado ao acabar; PainelInfo com ícone e fecha a central ao abrir. Painéis em arco antigos (hora/data/conexão/assistente) desligados; o diagnóstico foi para a barra "Sistema" da central.
+5. **Hologramas:** lógica, seleção (cor original + brilho sutil) e pegada intactos. Paleta: "ciano" (padrão), "dourado" e "roxo/violeta" agora usam as cores oficiais; demais cores nomeadas ficam como estavam.
+6. **Arquivos criados:** `Assets/TemaZetta.cs`, `Assets/CentralZetta.cs`, `Assets/IconesZetta.cs`, `Assets/Resources/VidroHolo.shader`, `Assets/Resources/ZettaFonte SDF.asset`, `Assets/Fonts/Rajdhani-SemiBold.ttf` + `OFL-Rajdhani.txt`, `Assets/Editor/CriarFonteZetta.cs` (menu Zetta > Gerar fonte), `Docs/capturas-redesign/*`.
+7. **Arquivos modificados:** `HoloUtil.cs`, `BotaoHolo.cs`, `TimersHolo.cs`, `PainelInfo.cs`, `InterrupcaoPinca.cs` (pinça na esfera também alterna a central), `AssistenteVoz.cs` (só a fonte dos dois rótulos), `EsferaZetta.cs` (método `Realcar`), `CriadorHolograma.cs` (3-4 cores da paleta), `SampleScene.unity` (CentralZetta adicionada ao objeto "PaineisHolograficos", que ficou desligado), `PLANO-ZETTA.md`, `PROGRESSO.md`.
+8. **Commits:** `b7e22bc` (F1-F2), `fc4dd62` (F3), `d5a59bb` (F4), `ad13964` (F5), `f1d2a7b` (F6) e o de F7-F8 (documentação).
+9. **Compilação:** Console sem erros (só warnings antigos do projeto); builds Android de conferência com 0 erros após a F3 e ao final (`Builds/Android/Conferencia.apk`, **não instalado**; o `JarvisMR.apk` anterior não foi tocado).
+10. **Testes (só no editor):** central abre/fecha e se recolhe sozinha (testado com 1,5 s), painéis Info e Timer com a fonte nova, hologramas coloridos, capturas em `Docs/capturas-redesign/` (as capturas usam uma câmera auxiliar frontal sobre fundo cinza, não o passthrough). **Fase 7 (otimização):** em repouso há menos objetos que antes (4 painéis em arco removidos); a central fica desativada fechada e não recria materiais; shader de vidro simples (1 passe, sem textura, sem grab pass); ~20 LineRenderers de ícones só enquanto aberta. FPS/GPU no Quest **não medidos** (precisa do óculos, OVR Metrics).
+11. **Pendências:** (a) o clique/poke na esfera não abre a central, só a pinça; (b) os botões da central não foram tocados com mão real (BotaoHolo é o mesmo mecanismo de antes, mas a posição/profundidade dos novos botões -0,004 m precisa ser conferida); (c) legibilidade dos textos (alguns pequenos: subtítulo, linha de diagnóstico) sobre a sala clara; (d) notas holográficas mantêm o cartão colorido atual (não foram convertidas em vidro, para preservar a cor escolhida); (e) o texto do card de nota/timer pode precisar de ajuste de tamanho; (f) o asset da fonte é dinâmico (glifos extras entram em tempo de execução).
+12. **Testar no Meta Quest 3, em ordem** (instale: `adb install -r Builds/Android/Conferencia.apk` — ou refaça o build normal):
+   1. Abrir o app: só a esfera dourada no canto e seu rótulo; nenhum painel em arco.
+   2. "Zetta, abra a central": cabeçalho (hora/data/Online), Aplicativos à esquerda, barra de comandos embaixo; texto legível, a sala visível através do vidro.
+   3. Esperar ~15 s sem tocar: tudo se recolhe sozinho. Reabrir com pinça perto da esfera; "Zetta, feche a central".
+   4. Tocar (poke) em Notas / Timers / Sites / Modelos 3D / Informações: a Zetta pergunta por voz e a central fecha; "Desenhar" liga o modo desenho; PARAR interrompe a fala; FECHAR fecha.
+   5. "Zetta, clima em São Paulo": painel de vidro com ícone e botão X; "Zetta, timer de 1 minuto": cartão de timer (pisca dourado ao acabar).
+   6. Criar cubo azul, esfera dourada, cone roxo: montagem, pegar (cor igual, brilho sutil), apagar.
+   7. Cor da esfera ("mude sua cor para roxo") e persistência ao reabrir.
+   8. Medir FPS (OVR Metrics) com a central aberta e fechada; se cair, reduzir/remover a linha de diagnóstico e os LineRenderers dos ícones.
+- **Licença da fonte:** Rajdhani © Indian Type Foundry, SIL Open Font License 1.1 (arquivo `Assets/Fonts/OFL-Rajdhani.txt`).
+
 # 🎨 REDESIGN ZETTA (Direção B) — andamento por fase
 ## Fase 1 — Auditoria
 - Git: branch main; só havia `.utmp/...fingerprint.bin` modificado (artefato do Gradle, não é meu) e `Docs/` não rastreado. Compilação inicial: 0 erros (só warnings antigos).
@@ -14,6 +37,9 @@
 - `PaineisHolograficos` (4 painéis em arco sempre visíveis) ficou no projeto **desligado** na cena (em repouso só a esfera e o rótulo de status dela). `IconesZetta.cs` (ícones de traço fino), `BotaoHolo` (ícone opcional, vidro), `PainelInfo` (ícone, título/corpo na fonte nova; fecha a central ao abrir), `TimersHolo` (vidro, pisca dourado ao acabar).
 - Capturas: `Docs/capturas-redesign/` (central-1/2, paineis-info-timer). Build de conferência Android: 0 erros (`Builds/Android/Conferencia.apk`, não instalado).
 - Limite: "toque" (poke) na esfera não abre a central, só a pinça. Notas (`NotasHolo`) mantêm o cartão colorido atual (cor escolhida pelo usuário), só ganham a fonte nova.
+
+## Fases 4 a 8 (resumo; detalhes no relatório do topo)
+- F4 esfera: só fonte dos rótulos + `EsferaZetta.Realcar()`. F5 hologramas: paleta oficial (ciano/dourado/roxo). F6 animações: tempos e ease do `TemaZetta` em central, `HoloUtil.Surgir` e saída do PainelInfo. F7 otimização: revisão feita, sem custos novos em repouso. F8 validação: Console sem erros, build de conferência 0 erros; pendências só validáveis no Quest.
 
 # 🌙 RESUMO DA RODADA 4 – compila; build de conferência 0 erros; NADA instalado no Quest
 - **Tarefa 1 (esfera da Zetta) feita.** Tarefas 2–6 do pedido já estavam concluídas na Rodada 3 (cor ao pegar, visão preta, notas, regra de limites, 3D de ponta a ponta) e foram puladas; ver o bloco "RODADA 3" abaixo. A miniatura da foto (tarefa 3a) agora aparece ao lado da nova esfera (usa a posição do `AnelHolografico`).

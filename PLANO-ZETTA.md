@@ -132,6 +132,10 @@ Faça backup/commit antes. Use um único sistema de mãos para os hologramas (ev
 2. Revisão visual geral: consistência de cor, espessura de linhas, brilho, legibilidade dos textos na sala clara e escura.
 3. Revisão de falas da Zetta: mensagens de erro amigáveis em português.
 
+## Redesign visual (Direção B) — concluído no editor, falta validar no Quest
+
+Ver o relatório no topo do PROGRESSO.md e `Docs/REDESIGN-ZETTA.md`. Resumo: `TemaZetta` + shader `VidroHolo` + fonte Rajdhani, central sob demanda (`CentralZetta`: "abra/feche a central", pinça na esfera, recolhe em 15 s), painéis de vidro, esfera preservada. Próximas atividades: testar no óculos, ajustar legibilidade/posições, e a fase própria do avatar (ideias futuras).
+
 ## Ideias futuras (não executar sem pedido)
 
 - "Zetta, escaneie este objeto/ambiente": captura como no OpenQuestCapture e reconstrução 3D na nuvem (Gaussian splatting).
