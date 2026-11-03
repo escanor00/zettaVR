@@ -310,6 +310,7 @@ public class EsferaZetta : MonoBehaviour
         var red = Paletas["vermelho"];
         mat.SetColor("_CorNucleo", Color.Lerp(nucleoAtual, Nucleo(red), mixErro));
         mat.SetColor("_CorBorda", Color.Lerp(bordaAtual, red.borda, mixErro));
+        if (voz != null) { var cf = Color.Lerp(Color.Lerp(bordaAtual, Color.white, 0.2f), red.borda, mixErro); cf.a = 1f; voz.corFala = cf; }
         mat.SetFloat("_Brilho", (brilho + 0.9f * pulso + 0.8f * mixErro) * 1.9f);
         mat.SetVector("_Centro", transform.position);
         mat.SetFloat("_Raio", Mathf.Max(0.0001f, transform.lossyScale.x));

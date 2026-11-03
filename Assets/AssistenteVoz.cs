@@ -62,6 +62,7 @@ public class AssistenteVoz : MonoBehaviour
 
     // dica curta no rótulo de status embaixo do anel
     string avisoTexto;
+    [HideInInspector] public Color corFala = new Color(0.2f, 0.9f, 1f);   // a esfera define: texto da fala e rótulo na cor dela
     float avisoAte;
     public void MostrarAviso(string t, float segundos) { avisoTexto = t; avisoAte = Time.time + segundos; }
 
@@ -437,9 +438,10 @@ public class AssistenteVoz : MonoBehaviour
     void AtualizarStatusVisivel()
     {
         if (textoStatus == null) return;
+        if (texto != null) texto.color = corFala;
         if (botaoParar != null && botaoParar.gameObject.activeSelf != falando) botaoParar.gameObject.SetActive(falando);
         string s;
-        Color cor = new Color(0.2f, 0.9f, 1f, 0.8f);
+        Color cor = new Color(corFala.r, corFala.g, corFala.b, 0.85f);
         if (Application.internetReachability == NetworkReachability.NotReachable) { s = "sem internet"; cor = new Color(1f, 0.6f, 0.2f); }
         else if (estadoMic == "microfone negado" || estadoMic == "sem microfone" || estadoMic == "erro no microfone")
         { s = estadoMic; cor = new Color(1f, 0.4f, 0.3f); }
@@ -447,10 +449,10 @@ public class AssistenteVoz : MonoBehaviour
         { s = "erro: " + (ultimoErro.Length > 34 ? ultimoErro.Substring(0, 34) : ultimoErro); cor = new Color(1f, 0.4f, 0.3f); }
         else if (Time.time < avisoAte) { s = avisoTexto; cor = new Color(1f, 0.9f, 0.3f, 0.95f); }
         else s = estadoMic;
+        textoStatus.color = cor;
         if (s == statusMostrado) return;
         statusMostrado = s;
         textoStatus.text = s;
-        textoStatus.color = cor;
     }
 
     float pausadoEm;
