@@ -90,15 +90,14 @@ public static class HoloUtil
     }
     static readonly System.Collections.Generic.Dictionary<Material, float> baseAlfa = new System.Collections.Generic.Dictionary<Material, float>();
 
-    public static IEnumerator Surgir(Transform alvo, float atraso = 0f, float duracao = 0.5f)
+    public static IEnumerator Surgir(Transform alvo, float atraso = 0f, float duracao = TemaZetta.TempoEntrada)
     {
         alvo.localScale = Vector3.zero;
         if (atraso > 0f) yield return new WaitForSeconds(atraso);
         for (float t = 0; t < duracao; t += Time.deltaTime)
         {
             float x = t / duracao;
-            const float c1 = 1.70158f, c3 = c1 + 1f;
-            float e = 1f + c3 * Mathf.Pow(x - 1f, 3f) + c1 * Mathf.Pow(x - 1f, 2f);
+            float e = TemaZetta.EaseOutBack(x);
             alvo.localScale = new Vector3(e, Mathf.Clamp01(x * 2f) * e, 1f);
             yield return null;
         }

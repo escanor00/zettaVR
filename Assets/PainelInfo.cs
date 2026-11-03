@@ -98,9 +98,9 @@ public class PainelInfo : MonoBehaviour
         fimEm = Time.time + duracao;
         while (raiz != null && Time.time < fimEm) yield return null;
         // encolhe e some
-        for (float t = 0; t < 0.4f && raiz != null; t += Time.deltaTime)
+        for (float t = 0; t < TemaZetta.TempoSaida && raiz != null; t += Time.deltaTime)
         {
-            float k = 1f - t / 0.4f;
+            float k = 1f - t / TemaZetta.TempoSaida;
             raiz.localScale = new Vector3(1f, Mathf.Max(0.02f, k), 1f);
             yield return null;
         }
