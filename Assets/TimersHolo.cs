@@ -18,7 +18,7 @@ public class TimersHolo : MonoBehaviour
         public float fim;
         public Transform raiz;
         public TextMeshPro rotulo, tempo;
-        public LineRenderer contorno;
+        public PainelVidro vidro;
         public bool terminado;
         public float inicioFim;
     }
@@ -70,8 +70,8 @@ public class TimersHolo : MonoBehaviour
         t.rotulo = HoloUtil.CriarTexto(t.raiz, "Nome", nome, new Vector3(0, tamanho.y * 0.5f - 0.02f, -0.002f),
             new Vector2(tamanho.x - 0.02f, 0.025f), 0.05f, HoloUtil.Ciano);
         t.tempo = HoloUtil.CriarTexto(t.raiz, "Tempo", Formatar(seg), new Vector3(0, -0.012f, -0.002f),
-            new Vector2(tamanho.x - 0.02f, 0.05f), 0.15f, Color.white);
-        t.contorno = t.raiz.Find("Contorno").GetComponent<LineRenderer>();
+            new Vector2(tamanho.x - 0.02f, 0.05f), 0.15f, TemaZetta.Branco);
+        t.vidro = t.raiz.GetComponent<PainelVidro>();
         var cam = Camera.main.transform;
         t.raiz.position = AlvoPosicao(timers.Count);
         t.raiz.rotation = Quaternion.LookRotation(t.raiz.position - cam.position);
@@ -131,11 +131,11 @@ public class TimersHolo : MonoBehaviour
             {
                 // pisca ciano/laranja
                 bool alt = Mathf.FloorToInt((Time.time - t.inicioFim) * 4f) % 2 == 0;
-                var cor = alt ? new Color(1f, 0.55f, 0.1f) : HoloUtil.Ciano;
-                t.tempo.color = alt ? cor : Color.white;
+                var cor = alt ? TemaZetta.Dourado : TemaZetta.AzulTec;
+                t.tempo.color = alt ? cor : TemaZetta.Branco;
                 t.rotulo.color = cor;
-                t.contorno.startColor = t.contorno.endColor = cor;
-                t.contorno.widthMultiplier = alt ? 0.006f : 0.003f;
+                t.vidro.DefinirBorda(cor, alt ? 1.6f : 1f);
+                t.vidro.DefinirRealce(alt ? 1f : 0f);
                 if (Time.time - t.inicioFim > segundosPiscando)
                 {
                     Destroy(t.raiz.gameObject);

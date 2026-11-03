@@ -15,7 +15,7 @@ public class BotaoHolo : MonoBehaviour
 
     Vector2 tamanho;
     Transform visual;
-    Material matFundo, matContorno;
+    PainelVidro vidro;
     TextMeshPro rotulo;
     bool apertado;
     float afund, brilho;
@@ -40,12 +40,9 @@ public class BotaoHolo : MonoBehaviour
     {
         var painel = HoloUtil.CriarPainel(transform, "Visual", tamanho);
         visual = painel;
-        var fundo = painel.Find("Fundo").GetComponent<Renderer>();
-        matFundo = fundo.material;
-        matFundo.color = new Color(0.1f, 0.6f, 0.7f, 0.22f);
-        matContorno = painel.Find("Contorno").GetComponent<LineRenderer>().material;
+        vidro = painel.GetComponent<PainelVidro>();
         rotulo = HoloUtil.CriarTexto(painel, "Rotulo", texto, new Vector3(0, 0, -0.002f),
-            new Vector2(tamanho.x * 0.9f, tamanho.y * 0.8f), 0.15f, HoloUtil.Ciano);
+            new Vector2(tamanho.x * 0.9f, tamanho.y * 0.8f), 0.15f, TemaZetta.Ciano);
     }
 
     void Update()
@@ -73,8 +70,9 @@ public class BotaoHolo : MonoBehaviour
         brilho = Mathf.Lerp(brilho, alvoBrilho, Time.deltaTime * 15f);
 
         visual.localPosition = new Vector3(0, 0, afund);
-        var f = matFundo.color; f.a = Mathf.Lerp(0.22f, 0.65f, brilho); matFundo.color = f;
-        rotulo.color = Color.Lerp(HoloUtil.Ciano, Color.white, brilho);
+        vidro.DefinirRealce(brilho);
+        vidro.DefinirBorda(Color.Lerp(TemaZetta.AzulTec, TemaZetta.Ciano, brilho), 1f + brilho * 0.5f);
+        rotulo.color = Color.Lerp(TemaZetta.Ciano, TemaZetta.Branco, brilho);
     }
 
     void Testar(XRHand mao, ref bool dentro, ref float zMax)

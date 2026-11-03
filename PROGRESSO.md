@@ -1,5 +1,14 @@
 # PROGRESSO
 
+# 🎨 REDESIGN ZETTA (Direção B) — andamento por fase
+## Fase 1 — Auditoria
+- Git: branch main; só havia `.utmp/...fingerprint.bin` modificado (artefato do Gradle, não é meu) e `Docs/` não rastreado. Compilação inicial: 0 erros (só warnings antigos).
+- Visual: `HoloUtil.CriarPainel` (painéis: Info, Timers, Botões), `PaineisHolograficos` (4 painéis em arco sempre visíveis: hora, data, conexão, assistente), `NotasHolo` e hologramas via `CriadorHolograma.AplicarVisual`, esfera em `EsferaZetta` + shader `EsferaAditiva`, rótulos em `AssistenteVoz.CriarTexto`.
+- Lógica (não mexer): `AssistenteVoz` (Gemini Live), `InteracaoMaos`/`InterrupcaoPinca` (XR Hands), `CameraOlhos`, `AncorasHolo`, `GeradorModelo3D`, `ApagadorHolo`. `InterrupcaoPinca.PincaNoAnel` já detecta pinça na esfera (reaproveitada para abrir a central).
+- Dependências dos painéis: `BotaoHolo` e `TimersHolo` liam o `LineRenderer` "Contorno" (agora a borda é do shader).
+## Fase 2 — Sistema visual
+- `TemaZetta.cs` (paleta oficial, medidas, tempos, materiais), `Resources/VidroHolo.shader` (vidro: translucidez + borda + gradiente + realce, sem grab pass), `PainelVidro` (cor da borda/realce por painel), `HoloUtil.CriarPainel` agora usa o vidro, fonte **Rajdhani SemiBold** (licença SIL OFL 1.1, Indian Type Foundry; texto em `Assets/Fonts/OFL-Rajdhani.txt`) com TMP Font Asset `Resources/ZettaFonte SDF` gerado por `Zetta > Gerar fonte` (acentos do português; só faltaram º e ª).
+
 # 🌙 RESUMO DA RODADA 4 – compila; build de conferência 0 erros; NADA instalado no Quest
 - **Tarefa 1 (esfera da Zetta) feita.** Tarefas 2–6 do pedido já estavam concluídas na Rodada 3 (cor ao pegar, visão preta, notas, regra de limites, 3D de ponta a ponta) e foram puladas; ver o bloco "RODADA 3" abaixo. A miniatura da foto (tarefa 3a) agora aparece ao lado da nova esfera (usa a posição do `AnelHolografico`).
 - **Esfera:** `EsferaZetta.cs` + shader `Resources/EsferaAditiva.shader`, criada pelo `AnelHolografico` (que continua cuidando de posição/seguir o olhar; `NucleoEnergia` ficou no projeto, desligado).

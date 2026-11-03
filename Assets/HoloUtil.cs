@@ -5,8 +5,8 @@ using UnityEngine;
 // Helpers de visual holográfico compartilhados (painéis, texto, animações).
 public static class HoloUtil
 {
-    public static readonly Color Ciano = new Color(0.2f, 0.95f, 1f, 1f);
-    public static readonly Color FundoPainel = new Color(0.02f, 0.12f, 0.16f, 0.18f);
+    // as cores vêm do tema (TemaZetta); estes nomes ficam para os scripts que já os usam
+    public static readonly Color Ciano = TemaZetta.AzulTec;
 
     static Material matSprite;
     public static Material NovoMaterialSprite(Color cor)
@@ -27,6 +27,7 @@ public static class HoloUtil
         t.rectTransform.sizeDelta = caixa;
         t.alignment = alinhamento;
         t.color = cor;
+        if (TemaZetta.Fonte != null) t.font = TemaZetta.Fonte;
         t.textWrappingMode = TextWrappingModes.Normal;
         t.overflowMode = TextOverflowModes.Truncate;
         t.enableAutoSizing = true;
@@ -36,7 +37,7 @@ public static class HoloUtil
         return t;
     }
 
-    // Painel fino: fundo quase transparente + contorno ciano. Origem no centro, olhando para +Z.
+    // Painel de vidro holográfico (translucidez + borda + gradiente, tudo no shader). Origem no centro, olhando para +Z.
     public static Transform CriarPainel(Transform pai, string nome, Vector2 tamanho)
     {
         var raiz = new GameObject(nome).transform;
@@ -47,20 +48,14 @@ public static class HoloUtil
         Object.Destroy(fundo.GetComponent<Collider>());
         fundo.transform.SetParent(raiz, false);
         fundo.transform.localScale = new Vector3(tamanho.x, tamanho.y, 1f);
-        fundo.GetComponent<Renderer>().material = NovoMaterialSprite(FundoPainel);
+        var rend = fundo.GetComponent<Renderer>();
+        rend.material = TemaZetta.NovoVidro(tamanho);
+        rend.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+        rend.receiveShadows = false;
 
-        var contorno = new GameObject("Contorno");
-        contorno.transform.SetParent(raiz, false);
-        contorno.transform.localPosition = new Vector3(0, 0, -0.001f);
-        var lr = contorno.AddComponent<LineRenderer>();
-        lr.useWorldSpace = false;
-        lr.loop = true;
-        lr.material = NovoMaterialSprite(Ciano);
-        lr.startColor = lr.endColor = Ciano;
-        lr.widthMultiplier = 0.003f;
-        float hx = tamanho.x * 0.5f, hy = tamanho.y * 0.5f;
-        lr.positionCount = 4;
-        lr.SetPositions(new[] { new Vector3(-hx, -hy, 0), new Vector3(-hx, hy, 0), new Vector3(hx, hy, 0), new Vector3(hx, -hy, 0) });
+        var vidro = raiz.gameObject.AddComponent<PainelVidro>();
+        vidro.material = rend.material;
+        vidro.tamanho = tamanho;
         return raiz;
     }
 
