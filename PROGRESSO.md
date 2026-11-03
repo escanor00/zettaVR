@@ -9,6 +9,12 @@
 ## Fase 2 — Sistema visual
 - `TemaZetta.cs` (paleta oficial, medidas, tempos, materiais), `Resources/VidroHolo.shader` (vidro: translucidez + borda + gradiente + realce, sem grab pass), `PainelVidro` (cor da borda/realce por painel), `HoloUtil.CriarPainel` agora usa o vidro, fonte **Rajdhani SemiBold** (licença SIL OFL 1.1, Indian Type Foundry; texto em `Assets/Fonts/OFL-Rajdhani.txt`) com TMP Font Asset `Resources/ZettaFonte SDF` gerado por `Zetta > Gerar fonte` (acentos do português; só faltaram º e ª).
 
+## Fase 3 — Painéis e central sob demanda
+- `CentralZetta.cs` (novo): cabeçalho (ZETTA, hora, data, Online/Sem rede), painel Aplicativos (Sites, Modelos 3D, Notas, Timers, Desenhar, Informações), barra de comandos (PARAR, microfone com medidor e "Ouvindo.../Falando.../Pronta/Em espera", FECHAR) e barra "Sistema" com o diagnóstico que estava nos painéis em arco (Gemini, mic, passthrough, falha do 3D). Abre por voz (`abrir_central`/`fechar_central`), por pinça na esfera (`InterrupcaoPinca.PincaNoAnel`) e se recolhe sozinha após 15 s sem interação (dedo em botão ou Zetta falando). Os botões de app só pedem à Zetta (por `Falar`) a ação já existente; "Desenhar" liga/desliga o `DesenhoNoAr`. Montada uma vez e só liga/desliga (sem recriar materiais).
+- `PaineisHolograficos` (4 painéis em arco sempre visíveis) ficou no projeto **desligado** na cena (em repouso só a esfera e o rótulo de status dela). `IconesZetta.cs` (ícones de traço fino), `BotaoHolo` (ícone opcional, vidro), `PainelInfo` (ícone, título/corpo na fonte nova; fecha a central ao abrir), `TimersHolo` (vidro, pisca dourado ao acabar).
+- Capturas: `Docs/capturas-redesign/` (central-1/2, paineis-info-timer). Build de conferência Android: 0 erros (`Builds/Android/Conferencia.apk`, não instalado).
+- Limite: "toque" (poke) na esfera não abre a central, só a pinça. Notas (`NotasHolo`) mantêm o cartão colorido atual (cor escolhida pelo usuário), só ganham a fonte nova.
+
 # 🌙 RESUMO DA RODADA 4 – compila; build de conferência 0 erros; NADA instalado no Quest
 - **Tarefa 1 (esfera da Zetta) feita.** Tarefas 2–6 do pedido já estavam concluídas na Rodada 3 (cor ao pegar, visão preta, notas, regra de limites, 3D de ponta a ponta) e foram puladas; ver o bloco "RODADA 3" abaixo. A miniatura da foto (tarefa 3a) agora aparece ao lado da nova esfera (usa a posição do `AnelHolografico`).
 - **Esfera:** `EsferaZetta.cs` + shader `Resources/EsferaAditiva.shader`, criada pelo `AnelHolografico` (que continua cuidando de posição/seguir o olhar; `NucleoEnergia` ficou no projeto, desligado).

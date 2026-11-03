@@ -54,7 +54,11 @@ public class InterrupcaoPinca : MonoBehaviour
             var mundo = origem.Origin.transform.TransformPoint(p.position);
             if (Vector3.Distance(mundo, anel.AlvoPosicao(Camera.main.transform)) < raioAnel) agora = true;
         }
-        if (agora && !pincaAnterior) voz.Acordar();
+        if (agora && !pincaAnterior)
+        {
+            voz.Acordar();
+            if (CentralZetta.Instancia != null) CentralZetta.Instancia.Alternar();   // pinça na esfera também abre/fecha a central
+        }
         pincaAnterior = agora;
     }
 

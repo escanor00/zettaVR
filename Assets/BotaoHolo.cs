@@ -24,7 +24,15 @@ public class BotaoHolo : MonoBehaviour
     static readonly List<XRHandSubsystem> subs = new List<XRHandSubsystem>();
     XROrigin origem;
 
-    public static BotaoHolo Criar(Transform pai, string texto, Vector3 posLocal, Vector2 tamanho, Action aoApertar)
+    // última vez que um dedo tocou em algum botão (a central se recolhe sozinha depois de ~15 s sem isso)
+    public static float UltimaInteracao;
+
+    Transform icone;
+    LineRenderer[] linhasIcone;
+    float brilhoIcone = -1f;
+    const float ProfundidadeIcone = -0.002f;
+
+    public static BotaoHolo Criar(Transform pai, string texto, Vector3 posLocal, Vector2 tamanho, Action aoApertar, string icone = null)
     {
         var go = new GameObject("Botao_" + texto);
         go.transform.SetParent(pai, false);
@@ -32,17 +40,26 @@ public class BotaoHolo : MonoBehaviour
         var b = go.AddComponent<BotaoHolo>();
         b.aoApertar = aoApertar;
         b.tamanho = tamanho;
-        b.Montar(texto);
+        b.Montar(texto, icone);
         return b;
     }
 
-    void Montar(string texto)
+    void Montar(string texto, string nomeIcone)
     {
         var painel = HoloUtil.CriarPainel(transform, "Visual", tamanho);
         visual = painel;
         vidro = painel.GetComponent<PainelVidro>();
         rotulo = HoloUtil.CriarTexto(painel, "Rotulo", texto, new Vector3(0, 0, -0.002f),
-            new Vector2(tamanho.x * 0.9f, tamanho.y * 0.8f), 0.15f, TemaZetta.Ciano);
+            new Vector2(tamanho.x * 0.9f, tamanho.y * 0.8f), 0.2f, TemaZetta.Ciano);
+        if (!string.IsNullOrEmpty(nomeIcone))
+        {
+            // ícone em cima, rótulo embaixo
+            float lado = Mathf.Min(tamanho.x * 0.4f, tamanho.y * 0.42f);
+            icone = IconesZetta.Criar(painel, nomeIcone, new Vector3(0, tamanho.y * 0.16f, ProfundidadeIcone), lado, TemaZetta.AzulTec);
+            linhasIcone = icone.GetComponentsInChildren<LineRenderer>(true);
+            rotulo.rectTransform.sizeDelta = new Vector2(tamanho.x * 0.94f, tamanho.y * 0.3f);
+            rotulo.transform.localPosition = new Vector3(0, -tamanho.y * 0.3f, TemaZetta.ProfundidadeTexto);
+        }
     }
 
     void Update()
@@ -60,6 +77,8 @@ public class BotaoHolo : MonoBehaviour
             }
         }
 
+        if (dentro) UltimaInteracao = Time.time;
+
         // dispara ao atravessar a superfície; só rearma depois de afastar o dedo
         if (!apertado && dentro && zMax > 0.002f) { apertado = true; aoApertar?.Invoke(); }
         else if (apertado && (!dentro || zMax < -0.012f)) apertado = false;
@@ -73,6 +92,12 @@ public class BotaoHolo : MonoBehaviour
         vidro.DefinirRealce(brilho);
         vidro.DefinirBorda(Color.Lerp(TemaZetta.AzulTec, TemaZetta.Ciano, brilho), 1f + brilho * 0.5f);
         rotulo.color = Color.Lerp(TemaZetta.Ciano, TemaZetta.Branco, brilho);
+        if (linhasIcone != null && Mathf.Abs(brilho - brilhoIcone) > 0.01f)
+        {
+            brilhoIcone = brilho;
+            var c = Color.Lerp(TemaZetta.AzulTec, TemaZetta.Branco, brilho);
+            foreach (var lr in linhasIcone) lr.startColor = lr.endColor = c;
+        }
     }
 
     void Testar(XRHand mao, ref bool dentro, ref float zMax)

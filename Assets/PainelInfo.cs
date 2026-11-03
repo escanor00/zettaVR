@@ -71,10 +71,14 @@ public class PainelInfo : MonoBehaviour
         raiz.position = pos;
         raiz.rotation = HoloUtil.OlharParaUsuario(pos);
 
-        HoloUtil.CriarTexto(raiz, "Titulo", titulo, new Vector3(0, tamanho.y * 0.5f - 0.035f, -0.002f),
-            new Vector2(tamanho.x - 0.04f, 0.05f), 0.12f, HoloUtil.Ciano);
-        HoloUtil.CriarTexto(raiz, "Corpo", corpoTexto.ToString(), new Vector3(0, -0.03f, -0.002f),
-            new Vector2(tamanho.x - 0.04f, tamanho.y - 0.1f), 0.18f, Color.white, TMPro.TextAlignmentOptions.TopLeft);
+        // central e painel de informação não ficam abertos juntos (um não cobre o outro)
+        if (CentralZetta.Instancia != null) CentralZetta.Instancia.Fechar();
+
+        IconesZetta.Criar(raiz, "info", new Vector3(-tamanho.x * 0.5f + 0.035f, tamanho.y * 0.5f - 0.035f, TemaZetta.ProfundidadeTexto), 0.03f, TemaZetta.Dourado);
+        HoloUtil.CriarTexto(raiz, "Titulo", titulo, new Vector3(0.012f, tamanho.y * 0.5f - 0.035f, TemaZetta.ProfundidadeTexto),
+            new Vector2(tamanho.x - 0.14f, 0.05f), 0.24f, TemaZetta.AzulTec, TMPro.TextAlignmentOptions.Left);
+        HoloUtil.CriarTexto(raiz, "Corpo", corpoTexto.ToString(), new Vector3(0, -0.03f, TemaZetta.ProfundidadeTexto),
+            new Vector2(tamanho.x - 0.05f, tamanho.y - 0.1f), 0.22f, TemaZetta.Branco, TMPro.TextAlignmentOptions.TopLeft);
         var tCorpo = raiz.Find("Corpo");
         corpoAtual = tCorpo != null ? tCorpo.GetComponent<TMPro.TMP_Text>() : null;
         tituloAtual = titulo;

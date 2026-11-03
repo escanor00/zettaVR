@@ -1385,7 +1385,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NotasHolo
   posicaoVista: {x: 0, y: -0.02, z: 0.55}
-  tamanhoCartao: {x: 0.2, y: 0.14}
+  larguraBase: 0.3
+  alturaMaxBase: 0.45
+  letraBase: 0.115
   alcanceGrudar: 0.25
   maxCaracteres: 280
 --- !u!1 &798337360
@@ -1470,6 +1472,7 @@ MonoBehaviour:
   instrucaoExtra: 
   acordada: 0
   tempoAtivaSegundos: 6
+  corFala: {r: 0.2, g: 0.9, b: 1, a: 1}
   distancia: 1.2
   offsetAbaixo: 0.4
   tentativasReconexao: 3
@@ -1716,6 +1719,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::CameraOlhos
   ultimoErro: 
   permissaoNegada: 0
+  mostrarMiniatura: 1
+  limiarBrilho: 0.03
 --- !u!1 &1097590526
 GameObject:
   m_ObjectHideFlags: 0
@@ -1937,6 +1942,7 @@ MonoBehaviour:
   distancia: 1.2
   deslocamento: {x: 0.36, y: -0.24}
   escala: 0.4
+  raioEsfera: 0.42
 --- !u!4 &1263155172
 Transform:
   m_ObjectHideFlags: 0
@@ -3944,6 +3950,7 @@ GameObject:
   m_Component:
   - component: {fileID: 2142066072}
   - component: {fileID: 2142066071}
+  - component: {fileID: 2142066073}
   m_Layer: 0
   m_Name: PaineisHolograficos
   m_TagString: Untagged
@@ -3958,7 +3965,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2142066070}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 2b175b79cf506d3468919f535a0cc7f1, type: 3}
   m_Name: 
@@ -3990,6 +3997,20 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &2142066073
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2142066070}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: aaaf1a1621cbfc147a8ba7d597d8dc3c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CentralZetta
+  distancia: 1.1
+  segundosParaRecolher: 15
 --- !u!1001 &3375922771489076479
 PrefabInstance:
   m_ObjectHideFlags: 0

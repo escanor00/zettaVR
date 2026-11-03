@@ -68,9 +68,9 @@ public class TimersHolo : MonoBehaviour
         var t = new Timer { nome = nome, fim = Time.time + seg };
         t.raiz = HoloUtil.CriarPainel(transform, "Timer_" + nome, tamanho);
         t.rotulo = HoloUtil.CriarTexto(t.raiz, "Nome", nome, new Vector3(0, tamanho.y * 0.5f - 0.02f, -0.002f),
-            new Vector2(tamanho.x - 0.02f, 0.025f), 0.05f, HoloUtil.Ciano);
+            new Vector2(tamanho.x - 0.02f, 0.026f), 0.12f, TemaZetta.AzulTec);
         t.tempo = HoloUtil.CriarTexto(t.raiz, "Tempo", Formatar(seg), new Vector3(0, -0.012f, -0.002f),
-            new Vector2(tamanho.x - 0.02f, 0.05f), 0.15f, TemaZetta.Branco);
+            new Vector2(tamanho.x - 0.02f, 0.05f), 0.34f, TemaZetta.Branco);
         t.vidro = t.raiz.GetComponent<PainelVidro>();
         var cam = Camera.main.transform;
         t.raiz.position = AlvoPosicao(timers.Count);
