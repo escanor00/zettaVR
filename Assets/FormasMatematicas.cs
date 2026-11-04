@@ -109,6 +109,7 @@ public class FormasMatematicas : MonoBehaviour
 
         HoloRegistro.Adicionar(raiz, forma, corTxt ?? "ciano", NomeBonito(forma), "forma", tamanho, forma);
         if (!string.IsNullOrEmpty(estadoSalvo)) oi.AplicarEstado(estadoSalvo);
+        EstiloCientifico.Aplicar(raiz, corpo.transform, forma);   // wireframe, nervuras, traços de luz, rótulos e painel
         return new JObject { ["result"] = NomeBonito(forma) + " criada" };
     }
 

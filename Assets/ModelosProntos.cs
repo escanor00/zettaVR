@@ -98,6 +98,7 @@ public class ModelosProntos : MonoBehaviour
         HoloRegistro.Adicionar(raiz, nome, "", nome.Replace('_', ' '), "modelo", 0.5f, nome);
         raiz.AddComponent<ObjetoInterativo>().Descobrir();   // cada peça nomeada (Sol, planetas, Oxigenio...) vira uma parte
         if (!string.IsNullOrEmpty(estadoSalvo)) raiz.GetComponent<ObjetoInterativo>().AplicarEstado(estadoSalvo);
+        EstiloCientifico.Aplicar(raiz, null, nome, true);   // modelo explicativo: rótulos de dados, % de cálculo e painel "modelo concluído"
         modelos.Add(raiz);
         while (modelos.Count > maxModelos)
         {

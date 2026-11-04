@@ -48,13 +48,17 @@ public static class InteracaoMaos
         lim.Medir();
     }
 
+    // rótulos, marcadores e painéis de dados (ExcluirDosLimites) não contam como corpo do objeto
+    public static bool ContaNosLimites(Renderer r)
+        => !(r is LineRenderer) && !(r is TMPro.TextMeshPro) && r.GetComponentInParent<ExcluirDosLimites>() == null;
+
     // caixa do objeto no mundo (renderers visíveis; se não houver, colisores)
     public static bool Limites(GameObject go, out Bounds limites)
     {
         Bounds? b = null;
         foreach (var r in go.GetComponentsInChildren<Renderer>())
         {
-            if (r is LineRenderer || r is TMPro.TextMeshPro) continue;
+            if (!ContaNosLimites(r)) continue;
             if (b == null) b = r.bounds; else { var bb = b.Value; bb.Encapsulate(r.bounds); b = bb; }
         }
         if (b == null)
@@ -108,3 +112,6 @@ public class LimiteEscala : MonoBehaviour
         if (Mathf.Abs(alvo - dim) > 0.0005f) transform.localScale *= alvo / dim;
     }
 }
+
+// Marca um filho (rótulos, marcadores, painel de dados) para não entrar nas caixas de pegada, tamanho e centro do objeto.
+public class ExcluirDosLimites : MonoBehaviour { }

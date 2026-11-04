@@ -17,6 +17,8 @@ public class ParteHolo : MonoBehaviour
     public bool oculta;
     public bool pintada;
     public Color cor;
+    public bool estiloLinhas;                 // desenhada por linhas (modo estrutura): a grade sólida fica desligada
+    public Action<Color> pintorPersonalizado; // partes com vértices coloridos ou várias linhas pintam por aqui
 
     static readonly HashSet<Material> instancias = new HashSet<Material>();
 
@@ -24,13 +26,17 @@ public class ParteHolo : MonoBehaviour
     {
         var r = GetComponent<Renderer>();
         if (r != null && !(r is LineRenderer)) yield return r;
-        var f = transform.Find("Preenchimento");
-        if (f != null) { var fr = f.GetComponent<Renderer>(); if (fr != null) yield return fr; }
+        foreach (var nome in new[] { "Preenchimento", "Linhas", "Nervuras" })
+        {
+            var f = transform.Find(nome);
+            if (f != null) { var fr = f.GetComponent<Renderer>(); if (fr != null) yield return fr; }
+        }
     }
 
     public void Pintar(Color c)
     {
         cor = c; pintada = true;
+        if (pintorPersonalizado != null) { pintorPersonalizado(c); return; }
         foreach (var r in Renderers()) AplicarCor(r, c, r.gameObject.name == "Preenchimento");
     }
 
@@ -64,6 +70,7 @@ public class ParteHolo : MonoBehaviour
     public Color CorVisual()
     {
         if (pintada) return cor;
+        if (pintorPersonalizado != null) return TemaZetta.AzulTec;
         foreach (var r in Renderers())
         {
             var m = r.sharedMaterial;
@@ -81,7 +88,12 @@ public class ParteHolo : MonoBehaviour
     public void Ocultar(bool o)
     {
         oculta = o;
-        foreach (var r in Renderers()) r.enabled = !o;
+        if (pintorPersonalizado != null) { foreach (var r in GetComponentsInChildren<Renderer>(true)) r.enabled = !o; }
+        else
+        {
+            var propria = GetComponent<Renderer>();
+            foreach (var r in Renderers()) r.enabled = !o && !(estiloLinhas && r == propria);
+        }
         var c = GetComponent<Collider>();
         if (c != null) c.enabled = !o;
     }
@@ -209,7 +221,7 @@ public class ObjetoInterativo : MonoBehaviour
         foreach (var r in GetComponentsInChildren<Renderer>(true))
         {
             if (r is LineRenderer || r is TextMeshPro || r.GetComponent<TextMeshPro>() != null) continue;
-            if (r.gameObject.name == "Preenchimento" || r.gameObject.name == "EntradaGrade") continue;
+            if (r.gameObject.name == "Preenchimento" || r.gameObject.name == "EntradaGrade" || r.GetComponentInParent<ExcluirDosLimites>() != null) continue;
             if (r.GetComponent<MeshFilter>() == null && !(r is SkinnedMeshRenderer)) continue;
             candidatos.Add(r);
         }

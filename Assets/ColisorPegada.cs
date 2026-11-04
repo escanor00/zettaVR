@@ -34,7 +34,7 @@ public class ColisorPegada : MonoBehaviour
         Bounds b = default;
         foreach (var r in GetComponentsInChildren<Renderer>())
         {
-            if (r is LineRenderer || r is TMPro.TextMeshPro || !r.enabled) continue;
+            if (!InteracaoMaos.ContaNosLimites(r) || !r.enabled) continue;
             var w = r.bounds;
             for (int i = 0; i < 8; i++)
             {

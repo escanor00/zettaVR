@@ -43,7 +43,7 @@ public static class HoloAlvo
                 bool ok = false;
                 foreach (var r in rs)
                 {
-                    if (r is LineRenderer) continue;
+                    if (r is LineRenderer || r.GetComponentInParent<ExcluirDosLimites>() != null) continue;
                     if (!ok) { b = r.bounds; ok = true; } else b.Encapsulate(r.bounds);
                 }
                 if (!ok) continue;
@@ -79,7 +79,7 @@ public static class HoloAlvo
         var rs = go.GetComponentsInChildren<Renderer>();
         if (rs.Length == 0) return go.transform.position;
         var b = new Bounds(rs[0].bounds.center, Vector3.zero);
-        foreach (var r in rs) if (!(r is LineRenderer)) b.Encapsulate(r.bounds);
+        foreach (var r in rs) if (!(r is LineRenderer) && r.GetComponentInParent<ExcluirDosLimites>() == null) b.Encapsulate(r.bounds);
         return b.center;
     }
 
@@ -88,7 +88,7 @@ public static class HoloAlvo
         var rs = go.GetComponentsInChildren<Renderer>();
         if (rs.Length == 0) return 0.1f;
         var b = new Bounds(rs[0].bounds.center, Vector3.zero);
-        foreach (var r in rs) if (!(r is LineRenderer)) b.Encapsulate(r.bounds);
+        foreach (var r in rs) if (!(r is LineRenderer) && r.GetComponentInParent<ExcluirDosLimites>() == null) b.Encapsulate(r.bounds);
         return b.size.magnitude * 0.5f;
     }
 

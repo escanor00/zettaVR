@@ -14,6 +14,12 @@
 - **Testado no Editor (Play):** criação de todas as formas e suas partes; cores/degradê/`partes_cores`; explodir com 7 pegadas; sistema solar/água/DNA/toro/Möbius/fractal; pintar/tirar/girar/listar pelas ferramentas; DNA voltas e desenrolar; `editar_objeto` cor em modelo e forma; `.glb` de teste gerado por script (esfera + caixa com 2 materiais): 3 partes, cor, explosão e estado; malha única → base/meio/topo. Teste automático novo (20/20). **Não testado:** pegar partes e pinçar com mão real; .glb real do TRELLIS (a malha pode não ser legível).
 - **Custo:** mais objetos de renderização (cubo = 6 partes x 2 renderers). Cada parte tem materiais próprios (necessário para pintar); a grade usa o mesmo shader leve. Medir no Quest com vários objetos; se pesar, reduzir `maxObjetos`.
 
+## 5. Estilo "modelo científico" e "Zetta, modo estrutura" — feita (só Editor)
+- `EstiloCientifico.cs`: formas matemáticas (completo) e modelos prontos (modo leve) ganham grade azul-ciano translúcida com nervuras internas (arestas da malha, ~1300 por parte, sem diagonais), 2–4 feixes verde/ciano que correm pela superfície com rastro curto, montagem progressiva (2,4 s), etiquetas flutuantes (nome, parâmetros, "cálculo N%" até 100%), 3 marcadores em losango com linhas de chamada e painel de vidro "MODELO CONCLUÍDO" (9 s; não aparece ao restaurar da âncora). Linhas compartilhadas, sem pós-processamento. Ferramenta `modo_estrutura` (ligar/desligar) = "Zetta, modo estrutura". Informações reais por forma no dicionário `Infos`.
+- Corrigido junto: etiquetas e marcadores contavam nos limites do objeto (caixa crescia a cada quadro e o objeto sumia na lixeira). Agora `ExcluirDosLimites` + `InteracaoMaos.ContaNosLimites`.
+- Captura: `Docs/capturas-redesign/r6-modo-cientifico-klein.png` (e `-toro.png`, primeira versão). Aviso no Console "Concave Mesh Colliders ... dynamic Rigidbody" ao pegar partes (só aviso; colisor não convexo nas partes).
+- **Limites:** modo estrutura não é salvo com a âncora; nada testado no headset; custo no Quest não medido.
+
 # 🌟 RESUMO FINAL — RODADA 5 (28 tarefas: A1–A5, B6–B17, C18–C22, D23–D28)
 **Estado:** as 28 tarefas foram feitas e commitadas localmente (um commit por tarefa/grupo, `778941b` … `fca2084`). Console sem erros; 19/19 testes automáticos passam; build de conferência Android em `Builds/Android/Conferencia.apk` (**NÃO instalado** no Quest; nenhum push; nada publicado). Nada foi validado com o headset: tudo abaixo foi conferido só no Editor (capturas em `Docs/capturas-redesign/`).
 
