@@ -23,6 +23,14 @@
    8. Medir FPS (OVR Metrics) com a central aberta e fechada; se cair, reduzir/remover a linha de diagnóstico e os LineRenderers dos ícones.
 - **Licença da fonte:** Rajdhani © Indian Type Foundry, SIL Open Font License 1.1 (arquivo `Assets/Fonts/OFL-Rajdhani.txt`).
 
+# 🎨 RODADA 5 (pedido de 28 tarefas) — andamento
+## A (visual) — feita
+- A1: vidro #102C46 ~70%, borda #42C8FF mais grossa (3,2 mm) com aura aditiva (saída pré-multiplicada `Blend One OneMinusSrcAlpha`, quad com margem de 2 cm), textos #EAF6FF. A2: esfera dourada = #E8B95E (borda) e núcleo #FFF5CC, brilho ×2,3 (antes saía laranja `(1,0.45,0.04)`).
+- A3: resposta da Zetta em #EAF6FF, maior e **acima da esfera** (alinhada à direita), fora da central; textos da central ≥ 0,18 (TMP `fontSizeMin`), painéis sem sobreposição (conferido por captura `central-3.png`).
+- A4: central em arco ao redor da cabeça, 2 camadas (0,9 m apps/comandos; 1,1 m cabeçalho/sistema), cada painel voltado para o usuário, lâmina de espessura 9 mm atrás do vidro, textos/ícones 1,4 cm e botões 2 cm à frente (paralaxe), 26 partículas de luz entre as camadas, entrada de trás para frente. `sortingOrder` fixa a ordem vidro < botões < textos (corrigiu botões escurecidos).
+- A5: `BotaoHolo` com BoxCollider (gatilho), acende quando o dedo se aproxima, afunda ao toque, clique sonoro (`SonsZetta`). Mantive a detecção por XR Hands (mesma de antes) em vez do poke do XRI: o XRI conflitaria com o grab dos hologramas. Sites=listar_sites, Modelos 3D=modelos_salvos, Notas=gerenciar_notas mostrar, Timers=resumo dos ativos, Desenhar=liga/desliga, Informações=clima+notícias; PARAR e FECHAR por toque.
+- Build de conferência: ver fim da seção.
+
 # 🎨 REDESIGN ZETTA (Direção B) — andamento por fase
 ## Fase 1 — Auditoria
 - Git: branch main; só havia `.utmp/...fingerprint.bin` modificado (artefato do Gradle, não é meu) e `Docs/` não rastreado. Compilação inicial: 0 erros (só warnings antigos).

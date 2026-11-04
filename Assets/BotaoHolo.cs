@@ -30,7 +30,8 @@ public class BotaoHolo : MonoBehaviour
     Transform icone;
     LineRenderer[] linhasIcone;
     float brilhoIcone = -1f;
-    const float ProfundidadeIcone = -0.002f;
+    const float ProfundidadeIcone = -0.008f;
+    float perto;   // 0..1: quão perto o dedo está (acende antes de tocar)
 
     public static BotaoHolo Criar(Transform pai, string texto, Vector3 posLocal, Vector2 tamanho, Action aoApertar, string icone = null)
     {
@@ -46,10 +47,10 @@ public class BotaoHolo : MonoBehaviour
 
     void Montar(string texto, string nomeIcone)
     {
-        var painel = HoloUtil.CriarPainel(transform, "Visual", tamanho);
+        var painel = HoloUtil.CriarPainel(transform, "Visual", tamanho, TemaZetta.OrdemBotao);
         visual = painel;
         vidro = painel.GetComponent<PainelVidro>();
-        rotulo = HoloUtil.CriarTexto(painel, "Rotulo", texto, new Vector3(0, 0, -0.002f),
+        rotulo = HoloUtil.CriarTexto(painel, "Rotulo", texto, new Vector3(0, 0, ProfundidadeIcone),
             new Vector2(tamanho.x * 0.9f, tamanho.y * 0.8f), 0.2f, TemaZetta.Ciano);
         if (!string.IsNullOrEmpty(nomeIcone))
         {
@@ -58,8 +59,12 @@ public class BotaoHolo : MonoBehaviour
             icone = IconesZetta.Criar(painel, nomeIcone, new Vector3(0, tamanho.y * 0.16f, ProfundidadeIcone), lado, TemaZetta.AzulTec);
             linhasIcone = icone.GetComponentsInChildren<LineRenderer>(true);
             rotulo.rectTransform.sizeDelta = new Vector2(tamanho.x * 0.94f, tamanho.y * 0.3f);
-            rotulo.transform.localPosition = new Vector3(0, -tamanho.y * 0.3f, TemaZetta.ProfundidadeTexto);
+            rotulo.transform.localPosition = new Vector3(0, -tamanho.y * 0.3f, ProfundidadeIcone);
         }
+        // colisor do tamanho do botão (gatilho; serve de alvo para poke/raios e para conferência)
+        var col = gameObject.AddComponent<BoxCollider>();
+        col.isTrigger = true;
+        col.size = new Vector3(tamanho.x, tamanho.y, 0.02f);
     }
 
     void Update()
@@ -67,25 +72,27 @@ public class BotaoHolo : MonoBehaviour
         if (visual == null) return;
         bool dentro = false;
         float zMax = -1f;
+        float proximo = 0f;
         if (ObterSubsistema())
         {
             if (origem == null) origem = FindAnyObjectByType<XROrigin>();
             if (origem != null)
             {
-                Testar(sub.rightHand, ref dentro, ref zMax);
-                Testar(sub.leftHand, ref dentro, ref zMax);
+                Testar(sub.rightHand, ref dentro, ref zMax, ref proximo);
+                Testar(sub.leftHand, ref dentro, ref zMax, ref proximo);
             }
         }
 
         if (dentro) UltimaInteracao = Time.time;
 
         // dispara ao atravessar a superfície; só rearma depois de afastar o dedo
-        if (!apertado && dentro && zMax > 0.002f) { apertado = true; aoApertar?.Invoke(); }
+        if (!apertado && dentro && zMax > 0.002f) { apertado = true; SonsZetta.Tocar(SonsZetta.Clique); aoApertar?.Invoke(); }
         else if (apertado && (!dentro || zMax < -0.012f)) apertado = false;
 
         float alvoAfund = dentro ? Mathf.Clamp(zMax, 0f, profundidadeMax) : 0f;
         afund = Mathf.Lerp(afund, alvoAfund, Time.deltaTime * 20f);
-        float alvoBrilho = apertado ? 1f : dentro ? 0.5f : 0f;
+        perto = Mathf.Lerp(perto, proximo, Time.deltaTime * 12f);
+        float alvoBrilho = apertado ? 1f : dentro ? 0.6f : perto * 0.4f;   // acende com o dedo se aproximando
         brilho = Mathf.Lerp(brilho, alvoBrilho, Time.deltaTime * 15f);
 
         visual.localPosition = new Vector3(0, 0, afund);
@@ -100,14 +107,16 @@ public class BotaoHolo : MonoBehaviour
         }
     }
 
-    void Testar(XRHand mao, ref bool dentro, ref float zMax)
+    void Testar(XRHand mao, ref bool dentro, ref float zMax, ref float proximo)
     {
         if (!mao.isTracked) return;
         if (!mao.GetJoint(XRHandJointID.IndexTip).TryGetPose(out var pose)) return;
         var mundo = origem.Origin.transform.TransformPoint(pose.position);
         var l = transform.InverseTransformPoint(mundo);
         if (Mathf.Abs(l.x) > tamanho.x * 0.5f + 0.01f || Mathf.Abs(l.y) > tamanho.y * 0.5f + 0.01f) return;
-        if (l.z < -0.04f || l.z > 0.03f) return;
+        if (l.z < -0.08f || l.z > 0.03f) return;
+        proximo = Mathf.Max(proximo, Mathf.Clamp01(1f - (-l.z) / 0.08f));
+        if (l.z < -0.04f) return;
         dentro = true;
         zMax = Mathf.Max(zMax, l.z);
     }

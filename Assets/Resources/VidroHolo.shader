@@ -11,13 +11,15 @@ Shader "Zetta/VidroHolo"
         _Tamanho ("Tamanho (m)", Vector) = (0.3, 0.2, 0, 0)
         _Raio ("Raio dos cantos (m)", Float) = 0.012
         _Espessura ("Espessura da borda (m)", Float) = 0.0018
+        _Margem ("Margem da aura (m)", Float) = 0.02
+        _Aura ("Aura aditiva", Float) = 0.5
         _Brilho ("Brilho da borda", Float) = 1
         _Realce ("Realce (0..1)", Float) = 0
     }
     SubShader
     {
         Tags { "Queue" = "Transparent" "RenderType" = "Transparent" "IgnoreProjector" = "True" }
-        Blend SrcAlpha OneMinusSrcAlpha, One OneMinusSrcAlpha
+        Blend One OneMinusSrcAlpha
         ZWrite Off
         Cull Off
 
@@ -31,7 +33,7 @@ Shader "Zetta/VidroHolo"
 
             fixed4 _Color, _CorTopo, _CorBase, _CorBorda;
             float4 _Tamanho;
-            float _Raio, _Espessura, _Brilho, _Realce;
+            float _Raio, _Espessura, _Brilho, _Realce, _Margem, _Aura;
 
             struct appdata { float4 vertex : POSITION; float2 uv : TEXCOORD0; UNITY_VERTEX_INPUT_INSTANCE_ID };
             struct v2f { float4 pos : SV_POSITION; float2 uv : TEXCOORD0; UNITY_VERTEX_OUTPUT_STEREO };
@@ -50,25 +52,27 @@ Shader "Zetta/VidroHolo"
             fixed4 frag (v2f i) : SV_Target
             {
                 float2 meio = _Tamanho.xy * 0.5;
-                float2 p = (i.uv - 0.5) * _Tamanho.xy;
-                // distância assinada de um retângulo de cantos arredondados
+                float2 p = (i.uv - 0.5) * (_Tamanho.xy + 2.0 * _Margem);
+                // distância assinada de um retângulo de cantos arredondados (negativa dentro)
                 float2 q = abs(p) - (meio - _Raio);
                 float d = length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - _Raio;
                 float aa = max(fwidth(d), 0.0002);
                 float dentro = 1.0 - smoothstep(-aa, aa, d);
-                float borda = (1.0 - smoothstep(-aa, aa, d)) * smoothstep(-_Espessura - aa, -_Espessura + aa, d);
+                float borda = dentro * smoothstep(-_Espessura - aa, -_Espessura + aa, d);
 
                 float t = saturate(i.uv.y);
                 fixed4 fundo = lerp(_CorBase, _CorTopo, t);
-                // faixa de luz lenta, bem sutil, para dar vida ao vidro
-                float faixa = smoothstep(0.0, 0.5, 0.5 - abs(frac(i.uv.y * 0.6 - _Time.y * 0.05) - 0.5)) * 0.04;
-                float a = (fundo.a + faixa + _Realce * 0.18) * dentro;
-                float3 c = fundo.rgb + _CorBorda.rgb * (faixa * 2.0 + _Realce * 0.25);
-                // borda mais forte nos cantos superiores
-                float luzBorda = _Brilho * (0.75 + 0.25 * t) * _CorBorda.a;
-                c = lerp(c, _CorBorda.rgb, saturate(borda));
-                a = max(a, saturate(borda * luzBorda));
-                return fixed4(c, a * _Color.a);
+                // faixa de luz lenta e sutil para dar vida ao vidro
+                float faixa = smoothstep(0.0, 0.5, 0.5 - abs(frac(i.uv.y * 0.6 - _Time.y * 0.05) - 0.5)) * 0.05;
+                float af = saturate(fundo.a + faixa + _Realce * 0.2) * dentro * (1.0 - borda);
+                float3 rgb = (fundo.rgb + _CorBorda.rgb * (faixa * 2.0 + _Realce * 0.3)) * af;
+                // borda sólida e brilhante + aura aditiva (fora e um pouco dentro), sem escurecer o que está atrás
+                float luz = _Brilho * (0.8 + 0.2 * t);
+                rgb += _CorBorda.rgb * borda * luz;
+                float aura = (d > 0.0 ? exp(-d / max(_Margem, 0.0001) * 3.5) * _Aura : 0.0) + dentro * exp(d / 0.008) * 0.3;
+                rgb += _CorBorda.rgb * aura * _Brilho * 0.6 * (1.0 - borda);
+                float a = saturate(af + borda);
+                return fixed4(rgb * _Color.a, a * _Color.a);
             }
             ENDCG
         }

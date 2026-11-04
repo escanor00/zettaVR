@@ -34,29 +34,50 @@ public static class HoloUtil
         t.fontSizeMin = 0.03f;
         t.fontSizeMax = tamanhoMax;
         t.text = conteudo;
+        t.sortingOrder = TemaZetta.OrdemTexto;
         return t;
     }
 
     // Painel de vidro holográfico (translucidez + borda + gradiente, tudo no shader). Origem no centro, olhando para +Z.
-    public static Transform CriarPainel(Transform pai, string nome, Vector2 tamanho)
+    public static Transform CriarPainel(Transform pai, string nome, Vector2 tamanho, int ordem = 0)
     {
         var raiz = new GameObject(nome).transform;
         raiz.SetParent(pai, false);
 
-        var fundo = GameObject.CreatePrimitive(PrimitiveType.Quad);
-        fundo.name = "Fundo";
-        Object.Destroy(fundo.GetComponent<Collider>());
-        fundo.transform.SetParent(raiz, false);
-        fundo.transform.localScale = new Vector3(tamanho.x, tamanho.y, 1f);
-        var rend = fundo.GetComponent<Renderer>();
-        rend.material = TemaZetta.NovoVidro(tamanho);
-        rend.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-        rend.receiveShadows = false;
+        var rend = NovaQuad(raiz, "Fundo", tamanho, TemaZetta.NovoVidro(tamanho), 0f, ordem);
+
+        // espessura: segunda lâmina atrás do vidro (só em painéis grandes), mais fraca e sem aura
+        if (Mathf.Min(tamanho.x, tamanho.y) > 0.08f)
+        {
+            var mt = TemaZetta.NovoVidro(tamanho);
+            mt.SetColor("_CorTopo", TemaZetta.ComAlfa(TemaZetta.AzulTec, 0.10f));
+            mt.SetColor("_CorBase", TemaZetta.ComAlfa(TemaZetta.AzulProfundo, 0.25f));
+            mt.SetFloat("_Aura", 0f);
+            mt.SetFloat("_Brilho", 0.45f);
+            NovaQuad(raiz, "Espessura", tamanho, mt, 0.009f, ordem - 1);
+        }
 
         var vidro = raiz.gameObject.AddComponent<PainelVidro>();
         vidro.material = rend.material;
         vidro.tamanho = tamanho;
         return raiz;
+    }
+
+    static Renderer NovaQuad(Transform pai, string nome, Vector2 tamanho, Material mat, float z, int ordem)
+    {
+        var q = GameObject.CreatePrimitive(PrimitiveType.Quad);
+        q.name = nome;
+        Object.Destroy(q.GetComponent<Collider>());
+        q.transform.SetParent(pai, false);
+        q.transform.localPosition = new Vector3(0, 0, z);
+        float m = TemaZetta.MargemAura * 2f;
+        q.transform.localScale = new Vector3(tamanho.x + m, tamanho.y + m, 1f);   // sobra para a aura
+        var r = q.GetComponent<Renderer>();
+        r.material = mat;
+        r.sortingOrder = ordem;   // vidro < botões < textos e ícones, independente da distância ao centro
+        r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+        r.receiveShadows = false;
+        return r;
     }
 
     // Ponto à frente da câmera, em coordenadas locais da vista (x direita, y cima, z frente), com yaw apenas.

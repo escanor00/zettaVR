@@ -16,13 +16,18 @@ public static class TemaZetta
     public static readonly Color Ok = new Color(0.4f, 1f, 0.6f, 1f);
 
     // vidro: translucidez + gradiente (topo mais claro)
-    public static readonly Color VidroTopo = new Color(0.10f, 0.30f, 0.45f, 0.30f);
-    public static readonly Color VidroBase = new Color(0.04f, 0.14f, 0.26f, 0.16f);
+    // #102C46 com ~70% de opacidade (topo um pouco mais claro)
+    public static readonly Color VidroTopo = new Color(0.085f, 0.24f, 0.37f, 0.74f);
+    public static readonly Color VidroBase = new Color(0.063f, 0.172f, 0.275f, 0.66f);
 
     // medidas
     public const float Raio = 0.012f;
-    public const float EspessuraBorda = 0.0018f;
-    public const float ProfundidadeTexto = -0.002f;
+    public const float EspessuraBorda = 0.0032f;
+    public const float ProfundidadeBotao = -0.02f;   // botões 2 cm à frente do vidro
+    public const float TextoMinimo = 0.18f;          // texto nunca menor que ~0,16 por metro
+    public const int OrdemBotao = 2, OrdemTexto = 5;   // ordem de desenho dos transparentes
+    public const float MargemAura = 0.02f;
+    public const float ProfundidadeTexto = -0.014f;   // texto/ícones à frente do vidro (paralaxe)
 
     // tempos de animação (s)
     public const float TempoEntrada = 0.45f;
@@ -58,6 +63,7 @@ public static class TemaZetta
         m.SetVector("_Tamanho", new Vector4(tamanho.x, tamanho.y, 0, 0));
         m.SetFloat("_Raio", Mathf.Min(raio, Mathf.Min(tamanho.x, tamanho.y) * 0.45f));
         m.SetFloat("_Espessura", EspessuraBorda);
+        m.SetFloat("_Margem", MargemAura);
         return m;
     }
 

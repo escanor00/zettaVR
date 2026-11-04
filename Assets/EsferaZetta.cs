@@ -16,7 +16,7 @@ public class EsferaZetta : MonoBehaviour
     struct Paleta { public Color nucleo, borda; }
     static readonly Dictionary<string, Paleta> Paletas = new Dictionary<string, Paleta>
     {
-        { "dourado",  new Paleta { nucleo = new Color(1f, 0.95f, 0.78f), borda = new Color(1f, 0.45f, 0.04f) } },
+        { "dourado",  new Paleta { nucleo = new Color(1f, 0.96f, 0.80f), borda = TemaZetta.Dourado } },
         { "ciano",    new Paleta { nucleo = new Color(0.85f, 1f, 1f),    borda = new Color(0.1f, 0.7f, 1f) } },
         { "verde",    new Paleta { nucleo = new Color(0.85f, 1f, 0.85f), borda = new Color(0.1f, 0.9f, 0.3f) } },
         { "vermelho", new Paleta { nucleo = new Color(1f, 0.85f, 0.8f),  borda = new Color(1f, 0.12f, 0.1f) } },
@@ -314,7 +314,7 @@ public class EsferaZetta : MonoBehaviour
         mat.SetColor("_CorNucleo", Color.Lerp(nucleoAtual, Nucleo(red), mixErro));
         mat.SetColor("_CorBorda", Color.Lerp(bordaAtual, red.borda, mixErro));
         if (voz != null) { var cf = Color.Lerp(Color.Lerp(bordaAtual, Color.white, 0.2f), red.borda, mixErro); cf.a = 1f; voz.corFala = cf; }
-        mat.SetFloat("_Brilho", (brilho + 0.9f * pulso + 0.8f * mixErro) * 1.9f);
+        mat.SetFloat("_Brilho", (brilho + 0.9f * pulso + 0.8f * mixErro) * 2.3f);
         mat.SetVector("_Centro", transform.position);
         mat.SetFloat("_Raio", Mathf.Max(0.0001f, transform.lossyScale.x));
 

@@ -83,6 +83,7 @@ public static class IconesZetta
         lr.numCornerVertices = 2;
         lr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
         lr.receiveShadows = false;
+        lr.sortingOrder = TemaZetta.OrdemTexto;
         lr.positionCount = pts.Length;
         for (int i = 0; i < pts.Length; i++) lr.SetPosition(i, new Vector3(pts[i].x * tam, pts[i].y * tam, -0.001f));
     }

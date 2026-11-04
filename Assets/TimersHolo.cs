@@ -24,6 +24,15 @@ public class TimersHolo : MonoBehaviour
     }
 
     readonly List<Timer> timers = new List<Timer>();
+
+    // "café (09:12), pizza (01:30)" ou "nenhum timer ativo"
+    public string Resumo()
+    {
+        if (timers.Count == 0) return "nenhum timer ativo";
+        var partes = new List<string>();
+        foreach (var t in timers) partes.Add(t.nome + " (" + Formatar(t.fim - Time.time) + ")");
+        return string.Join(", ", partes);
+    }
     AssistenteVoz voz;
 
     const string DeclCriar = @"{

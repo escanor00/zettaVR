@@ -167,7 +167,7 @@ public class AssistenteVoz : MonoBehaviour
     // texto
     TextMeshPro texto;
     AnelHolografico anelRef;
-    const float LarguraTexto = 0.42f;
+    const float LarguraTexto = 0.5f;
     Transform alvoTexto;
     bool novoTurno = true;
 
@@ -438,7 +438,7 @@ public class AssistenteVoz : MonoBehaviour
     void AtualizarStatusVisivel()
     {
         if (textoStatus == null) return;
-        if (texto != null) texto.color = corFala;
+        if (texto != null) texto.color = TemaZetta.Branco;   // resposta em #EAF6FF
         if (botaoParar != null && botaoParar.gameObject.activeSelf != falando) botaoParar.gameObject.SetActive(falando);
         string s;
         Color cor = new Color(corFala.r, corFala.g, corFala.b, 0.85f);
@@ -736,13 +736,13 @@ public class AssistenteVoz : MonoBehaviour
         alvoTexto = texto.rectTransform;
         texto.alignment = TextAlignmentOptions.Center;
         texto.color = new Color(0.2f, 0.9f, 1f);
-        texto.rectTransform.sizeDelta = new Vector2(LarguraTexto, 0.26f);
+        texto.rectTransform.sizeDelta = new Vector2(LarguraTexto, 0.24f);
         texto.alignment = TextAlignmentOptions.MidlineRight;
         texto.textWrappingMode = TextWrappingModes.Normal;
         texto.overflowMode = TextOverflowModes.Truncate;
         texto.enableAutoSizing = true;
-        texto.fontSizeMin = 0.05f;
-        texto.fontSizeMax = 0.5f;
+        texto.fontSizeMin = 0.18f;
+        texto.fontSizeMax = 0.6f;
         texto.text = "Iniciando...";
 
         // rótulo de status pequeno embaixo do anel
@@ -779,8 +779,9 @@ public class AssistenteVoz : MonoBehaviour
         float x = 0f, y = -offsetAbaixo, d = distancia;
         if (anelRef != null)
         {
-            x = anelRef.deslocamento.x - LarguraTexto * 0.5f - 0.14f;
-            y = anelRef.deslocamento.y;
+            // acima da esfera, alinhado à direita (nunca sobre ela nem sobre a central)
+            x = anelRef.deslocamento.x + 0.2f - LarguraTexto * 0.5f;
+            y = anelRef.deslocamento.y + 0.33f;
             d = anelRef.distancia;
         }
         return cam.position + cam.forward * d + cam.right * x + cam.up * y;
