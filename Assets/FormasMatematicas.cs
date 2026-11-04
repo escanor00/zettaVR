@@ -51,6 +51,12 @@ public class FormasMatematicas : MonoBehaviour
         else if (forma.Contains("dna") || forma.Contains("helice")) forma = "dna";
         else if (forma.Contains("fractal") || forma.Contains("sierpinski")) forma = "fractal";
         else if (forma.Contains("toro")) forma = "toro";
+        // o DNA agora e o infografico (DnaHolo): fitas finas, degraus separados, base de aneis e chamadas
+        if (forma == "dna" && posMundo == null && string.IsNullOrEmpty(estadoSalvo))
+        {
+            var dna = FindAnyObjectByType<DnaHolo>();
+            if (dna != null) { dna.Montar(null, null); return new JObject { ["result"] = "hélice de DNA criada (infográfico)" }; }
+        }
         var malha = Gerar(forma);
         if (malha == null) return new JObject { ["erro"] = "forma inválida; use mobius, klein, no_toroidal, dna, toro ou fractal" };
 

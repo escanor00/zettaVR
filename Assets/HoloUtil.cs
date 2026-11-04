@@ -17,6 +17,18 @@ public static class HoloUtil
         return m;
     }
 
+    static Shader shaderAditivo;
+    // Material aditivo com fresnel (shader Zetta/HoloAditivo, em Resources); cai no Sprites/Default se faltar.
+    public static Material NovoMaterialAditivo(Color cor, float baseFixa = 0.5f, float borda = 1f)
+    {
+        if (shaderAditivo == null) shaderAditivo = Shader.Find("Zetta/HoloAditivo");
+        if (shaderAditivo == null) return NovoMaterialSprite(cor);
+        var m = new Material(shaderAditivo) { color = cor };
+        m.SetFloat("_Base", baseFixa);
+        m.SetFloat("_Rim", borda);
+        return m;
+    }
+
     public static TextMeshPro CriarTexto(Transform pai, string nome, string conteudo, Vector3 posLocal,
         Vector2 caixa, float tamanhoMax, Color cor, TextAlignmentOptions alinhamento = TextAlignmentOptions.Center)
     {

@@ -34,7 +34,7 @@ public class EstiloCientifico : MonoBehaviour
     static readonly Color Verde = new Color(0.42f, 1f, 0.69f, 1f);
     const float DuracaoMontagem = 2.4f;
 
-    class Parte { public ParteHolo parte; public Mesh linhas, nervuras; public Material matL, matN; public GameObject goL, goN; public float alfaFill; }
+    class Parte { public Shader shaderFill; public ParteHolo parte; public Mesh linhas, nervuras; public Material matL, matN; public GameObject goL, goN; public float alfaFill; }
 
     readonly List<Parte> partes = new List<Parte>();
     readonly List<LineRenderer> tracos = new List<LineRenderer>();
@@ -89,7 +89,7 @@ public class EstiloCientifico : MonoBehaviour
         eixo = b.size.y >= b.size.x && b.size.y >= b.size.z ? 1 : (b.size.x >= b.size.z ? 0 : 2);
         minEixo = b.min[eixo]; tamEixo = Mathf.Max(0.0001f, b.size[eixo]);
 
-        matTraco = HoloUtil.NovoMaterialSprite(Color.white);
+        matTraco = HoloUtil.NovoMaterialAditivo(Color.white, 1f, 0f);
         matMarca = HoloUtil.NovoMaterialSprite(TemaZetta.ComAlfa(Verde, 0.95f));
         if (!leve)
         {
@@ -140,6 +140,7 @@ public class EstiloCientifico : MonoBehaviour
         var ml = new Mesh { name = "Linhas_" + p.nome, indexFormat = v.Length > 60000 ? UnityEngine.Rendering.IndexFormat.UInt32 : UnityEngine.Rendering.IndexFormat.UInt16 };
         ml.vertices = v;
         ml.SetIndices(idx, MeshTopology.Lines, 0);
+        ml.normals = src.normals;   // fresnel: arestas de frente mais fracas, silhueta mais viva
         ml.colors = CoresReveal(v, p.transform, esp, 0f);
         ml.bounds = src.bounds;
 
@@ -157,10 +158,13 @@ public class EstiloCientifico : MonoBehaviour
         int total = v.Length;
         int saltoFio = Mathf.Max(1, total / 36);
         var todos = new List<Vector3>(vn);
-        for (int i = 0; i < total; i += saltoFio) { todos.Add(v[i]); idn.Add(todos.Count - 1); idn.Add(i); }
+        var nor = src.normals;
+        var norTodos = new List<Vector3>(nor);
+        for (int i = 0; i < total; i += saltoFio) { todos.Add(v[i]); norTodos.Add(nor.Length > i ? nor[i] : Vector3.zero); idn.Add(todos.Count - 1); idn.Add(i); }
         // os vértices externos usados pelos fios entram depois dos internos
         var mn = new Mesh { name = "Nervuras_" + p.nome, indexFormat = todos.Count > 60000 ? UnityEngine.Rendering.IndexFormat.UInt32 : UnityEngine.Rendering.IndexFormat.UInt16 };
         mn.vertices = todos.ToArray();
+        mn.normals = norTodos.ToArray();
         // reindexa os fios: pares (externo novo, interno i)
         var idn2 = new List<int>();
         for (int e = 0; e + 1 < idn.Count; e += 2) { idn2.Add(idn[e]); idn2.Add(idn[e + 1]); }
@@ -172,8 +176,8 @@ public class EstiloCientifico : MonoBehaviour
 
         var cor = p.pintada ? p.cor : TemaZetta.AzulTec;
         var entrada = new Parte { parte = p, linhas = ml, nervuras = mn };
-        entrada.goL = NovoRenderer(p.transform, "Linhas", ml, entrada.matL = MaterialLinha(cor, 0.85f));
-        entrada.goN = NovoRenderer(p.transform, "Nervuras", mn, entrada.matN = MaterialLinha(cor, 0.35f));
+        entrada.goL = NovoRenderer(p.transform, "Linhas", ml, entrada.matL = MaterialLinha(cor, 0.5f));
+        entrada.goN = NovoRenderer(p.transform, "Nervuras", mn, entrada.matN = MaterialLinha(cor, 0.28f));
         // a parte passa a ser desenhada por linhas: grade sólida desligada e preenchimento bem leve
         p.estiloLinhas = true;
         var rg = p.GetComponent<Renderer>(); if (rg != null) rg.enabled = false;
@@ -183,7 +187,17 @@ public class EstiloCientifico : MonoBehaviour
             var fr = fill.GetComponent<Renderer>();
             if (fr != null && fr.sharedMaterial != null)
             {
-                var c = fr.sharedMaterial.color; entrada.alfaFill = c.a; c.a = Mathf.Min(c.a, 0.07f); fr.sharedMaterial.color = c;
+                // preenchimento deixa de ser cor chapada: fresnel aditivo, centro quase transparente e borda luminosa
+                var c = fr.sharedMaterial.color; entrada.alfaFill = c.a; entrada.shaderFill = fr.sharedMaterial.shader;
+                var cf = cor; cf.a = 0.5f;
+                var shAd = Shader.Find("Zetta/HoloAditivo");
+                if (shAd != null)
+                {
+                    fr.sharedMaterial.shader = shAd;
+                    fr.sharedMaterial.SetFloat("_Base", 0.12f); fr.sharedMaterial.SetFloat("_Rim", 1.1f); fr.sharedMaterial.SetFloat("_Potencia", 2.2f);
+                    fr.sharedMaterial.color = cf;
+                }
+                else { c.a = Mathf.Min(c.a, 0.07f); fr.sharedMaterial.color = c; }
             }
         }
         partes.Add(entrada);
@@ -208,7 +222,7 @@ public class EstiloCientifico : MonoBehaviour
         var saida = new List<int>();
         if (grade)
         {
-            int s = Mathf.Max(1, Mathf.CeilToInt(Mathf.Sqrt(n / 1300f)));
+            int s = Mathf.Max(1, Mathf.CeilToInt(Mathf.Sqrt(n / 800f)));
             for (int e = 0; e < pares.Count; e += 2)
             {
                 int a = orig(pares[e]), b = orig(pares[e + 1]);
@@ -223,15 +237,15 @@ public class EstiloCientifico : MonoBehaviour
             if (saida.Count >= 12) return saida;
             saida.Clear();
         }
-        int passo = Mathf.Max(1, n / 2500);
+        int passo = Mathf.Max(1, n / 1400);
         for (int e = 0; e < pares.Count; e += 2) if ((e / 2) % passo == 0) { saida.Add(pares[e]); saida.Add(pares[e + 1]); }
         return saida;
     }
 
     static Material MaterialLinha(Color cor, float alfa)
     {
-        var m = HoloUtil.NovoMaterialSprite(new Color(cor.r, cor.g, cor.b, alfa));
-        return m;
+        // aura aditiva leve, ~30-50% de opacidade; a silhueta (fresnel) fica mais viva que o centro
+        return HoloUtil.NovoMaterialAditivo(new Color(cor.r, cor.g, cor.b, alfa), 0.6f, 1.2f);
     }
 
     static GameObject NovoRenderer(Transform pai, string nome, Mesh malha, Material mat)
@@ -527,7 +541,11 @@ public class EstiloCientifico : MonoBehaviour
             if (fill != null && p.alfaFill > 0f)
             {
                 var fr = fill.GetComponent<Renderer>();
-                if (fr != null && fr.sharedMaterial != null) { var c = fr.sharedMaterial.color; c.a = p.alfaFill; fr.sharedMaterial.color = c; }
+                if (fr != null && fr.sharedMaterial != null)
+                {
+                    if (p.shaderFill != null) fr.sharedMaterial.shader = p.shaderFill;
+                    var c = fr.sharedMaterial.color; c.a = p.alfaFill; fr.sharedMaterial.color = c;
+                }
             }
         }
         foreach (var lr in tracos) if (lr != null) Destroy(lr.gameObject);
@@ -555,12 +573,38 @@ public class ModoEstrutura : MonoBehaviour
     ""required"": [""acao""]
   }
 }";
+    const string DeclSolido = @"{
+  ""name"": ""modo_solido"",
+  ""description"": ""Liga ou desliga o MODO SOLIDO: o holograma volta a ser uma malha cheia, sem o estilo de modelo cientifico (wireframe translucido). O padrao das formas matematicas e do DNA e o wireframe; so use esta ferramenta se o usuario pedir modo solido."",
+  ""parameters"": {
+    ""type"": ""OBJECT"",
+    ""properties"": {
+      ""acao"": { ""type"": ""STRING"", ""enum"": [""ligar"", ""desligar""] },
+      ""objeto"": { ""type"": ""STRING"", ""description"": ""Descricao do objeto; vazio = o que o usuario olha."" }
+    },
+    ""required"": [""acao""]
+  }
+}";
     const string Instrucao = "Para 'modo estrutura' / 'mostre a estrutura disso' use modo_estrutura com acao=ligar; para 'volte ao normal' acao=desligar. Comente em uma frase.";
 
     void Awake()
     {
         var voz = FindAnyObjectByType<AssistenteVoz>();
-        if (voz != null) voz.RegistrarFerramenta(Decl, Executar, Instrucao);
+        if (voz != null)
+        {
+            voz.RegistrarFerramenta(Decl, Executar, Instrucao);
+            voz.RegistrarFerramenta(DeclSolido, ExecutarSolido, "Formas matematicas e DNA sao sempre wireframe translucido; so com 'modo solido' use modo_solido acao=ligar (e desligar para voltar).");
+        }
+    }
+
+    public JObject ExecutarSolido(JObject a)
+    {
+        bool solido = (a.Value<string>("acao") ?? "ligar").ToLowerInvariant().StartsWith("l");
+        var item = ObjetoInterativo.Alvo(a, out string erro);
+        if (item == null || item.go == null) return new JObject { ["erro"] = erro ?? "objeto nao encontrado" };
+        if (solido) return new JObject { ["result"] = EstiloCientifico.Remover(item.go) ? "modo solido ligado" : "ja estava solido" };
+        a["acao"] = "ligar";
+        return Executar(a);
     }
 
     public JObject Executar(JObject a)

@@ -7,6 +7,15 @@
 - "Zetta, pare": só funciona quando o microfone está aberto (antes da fala ou durante "processando"); durante a fala o mic fica fechado de propósito (sem cancelamento de eco), então lá vale pinça na esfera ou PARAR. Não implementei barge-in por voz durante a fala: reabriria o eco que causava o corte.
 - Sons espaciais/ondas da barra: usam outro AudioSource (PlayOneShot) e não tocam na fonte da voz; nada a corrigir ali.
 
+## 2–3. Estilo científico padrão + DNA conforme a referência — feitas (só Editor)
+- Shader novo `Zetta/HoloAditivo` (`Assets/Resources`, vai no build): aditivo, cor de vértice, fresnel (centro quase transparente, silhueta viva). `HoloUtil.NovoMaterialAditivo`.
+- `EstiloCientifico`: linhas a ~50% e nervuras a ~28% de opacidade em material aditivo com fresnel (normais copiadas para as malhas de linhas), preenchimento trocado do Sprites/Default chapado para fresnel aditivo, menos arestas (alvo ~800 por parte, antes 1300) para não virar mancha de longe, traços de luz aditivos. Já eram padrão em formas matemáticas; **"modo sólido"** (`modo_solido` ligar/desligar) devolve a malha cheia.
+- `criar_forma_matematica forma=dna` agora cria o infográfico `DnaHolo` (antes era a malha sólida antiga; âncoras antigas ainda restauram o formato velho).
+- `DnaHolo`: fitas finas (fio central + aura fraca) com nós octaédricos pequenos e fresnel; degraus mais finos, afastados das fitas e com fresta entre as duas bases; anéis em cima e embaixo; 3 traços de luz com rastro correndo pelas fitas; montagem progressiva de baixo para cima (alfa por vértice); tudo em material aditivo. "Mostre as bases": A-T e C-G em cores diferentes (A dourado/T laranja; C verde/G rosa), como antes.
+- Capturas: `Docs/capturas-redesign/r7-mobius-cientifico.png`, `r7-dna-referencia.png` (no Editor há um quadrado branco da cena de teste na frente; não é do app).
+- **Limites:** só Editor; custo no Quest não medido; o visual é inspirado na referência, não igual.
+
+
 # 🌟 RESUMO FINAL — RODADA 6 (7 tarefas)
 **Estado:** T1–T7 feitas e commitadas localmente (`f280c1e`, `195faea`, `f605091`, `08070d9`). Console sem erros; 22/22 testes automáticos; build de conferência Android em `Builds/Android/Conferencia.apk` (**NÃO instalado** no Quest; nenhum push). Tudo conferido só no Editor; nada com mãos reais, TRELLIS real ou medição no Quest.
 **Arquivos novos:** `ObjetoInterativo.cs`, `FerramentasPartes.cs`, `EstiloCientifico.cs`, `DnaHolo.cs`, `ExpressaoMatematica.cs`, `MatematicaHolo.cs`, `ResolucaoCalculadora.cs`, `GeometriaHolo.cs`. **Capturas:** `Docs/capturas-redesign/r6-*.png`.

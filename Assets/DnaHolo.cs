@@ -175,7 +175,9 @@ public class DnaHolo : MonoBehaviour
         m.colors = cs;
     }
 
-    Material Mat() => HoloUtil.NovoMaterialSprite(Color.white);
+    // aditivo (luz), sem cor chapada; MatF tem fresnel (borda mais viva) para os volumes pequenos (nós, degraus)
+    Material Mat() => HoloUtil.NovoMaterialAditivo(new Color(1f, 1f, 1f, 0.75f), 1f, 0f);
+    Material MatF() => HoloUtil.NovoMaterialAditivo(new Color(0.8f, 0.9f, 1f, 0.8f), 0.45f, 1.4f);
 
     // ---------- montagem ----------
     public GameObject Montar(Vector3? posMundo, Quaternion? rotMundo)
@@ -201,16 +203,18 @@ public class DnaHolo : MonoBehaviour
             const int seg = 140;
             for (int k = 0; k < seg; k++)
             {
-                foreach (var off in new[] { Vector3.zero, new Vector3(0, 0.006f, 0), new Vector3(0, -0.006f, 0) })
+                // fita fina: fio central forte e dois fios de aura bem fracos
+                foreach (var off in new[] { Vector3.zero, new Vector3(0, 0.004f, 0), new Vector3(0, -0.004f, 0) })
                 {
                     pts.Add(PontoFita(k / (float)seg, f) + off); pts.Add(PontoFita((k + 1) / (float)seg, f) + off);
-                    var cc = cor; cc.a = 0.9f; cs.Add(cc); cs.Add(cc);
+                    var cc = cor; cc.a = off == Vector3.zero ? 0.85f : 0.22f; cs.Add(cc); cs.Add(cc);
                 }
             }
             var v = new List<Vector3>(); var t = new List<int>(); var c = new List<Color>();
-            for (int p = 0; p <= Pares; p++) Octaedro(v, t, c, PontoFita(p / (float)Pares, f), 0.017f, Color.Lerp(cor, Color.white, 0.55f));
+            for (int p = 0; p <= Pares; p++) Octaedro(v, t, c, PontoFita(p / (float)Pares, f), 0.010f, Color.Lerp(cor, Color.white, 0.55f));
             var malhaNos = Fazer(f == 0 ? "FitaA_nos" : "FitaB_nos", v, t, c);
-            var go = HoloMat.NovoMeshGO(raiz.transform, f == 0 ? "fita A" : "fita B", malhaNos, Mat());
+            malhaNos.RecalculateNormals();
+            var go = HoloMat.NovoMeshGO(raiz.transform, f == 0 ? "fita A" : "fita B", malhaNos, MatF());
             var malhaLinhas = HoloMat.MalhaDeLinhas(pts, cs, "FitaLinhas");
             HoloMat.NovoMeshGO(go.transform, "Linhas", malhaLinhas, Mat());
             var ph = go.AddComponent<ParteHolo>();
@@ -232,14 +236,17 @@ public class DnaHolo : MonoBehaviour
                 var a = PontoFita(u, 0); var b = PontoFita(u, 1);
                 var mid = (a + b) * 0.5f;
                 int tipo = rnd();   // 0 A-T, 1 T-A, 2 C-G, 3 G-C
-                var ini = Vector3.Lerp(a, b, 0.07f); var fim = Vector3.Lerp(a, b, 0.93f);
-                if (tipo < 2) { d.tipoAT.Add(tipo); Caixa(vA, tA, cA, ini, mid, 0.0065f, CorPar); Caixa(vA, tA, cA, mid, fim, 0.0065f, CorPar); }
-                else { d.tipoCG.Add(tipo); Caixa(vC, tC, cC, ini, mid, 0.0065f, CorPar); Caixa(vC, tC, cC, mid, fim, 0.0065f, CorPar); }
+                // degraus SEPARADOS das fitas (fora dos nós) e com uma fresta no meio entre as duas bases
+                var ini = Vector3.Lerp(a, b, 0.09f); var fim = Vector3.Lerp(a, b, 0.91f);
+                var m1 = Vector3.Lerp(a, b, 0.485f); var m2 = Vector3.Lerp(a, b, 0.515f);
+                if (tipo < 2) { d.tipoAT.Add(tipo); Caixa(vA, tA, cA, ini, m1, 0.0022f, CorPar); Caixa(vA, tA, cA, m2, fim, 0.0022f, CorPar); }
+                else { d.tipoCG.Add(tipo); Caixa(vC, tC, cC, ini, m1, 0.0022f, CorPar); Caixa(vC, tC, cC, m2, fim, 0.0022f, CorPar); }
             }
             d.paresAT = Fazer("ParesAT", vA, tA, cA);
             d.paresCG = Fazer("ParesCG", vC, tC, cC);
-            var gAT = HoloMat.NovoMeshGO(raiz.transform, "pares A-T", d.paresAT, Mat());
-            var gCG = HoloMat.NovoMeshGO(raiz.transform, "pares C-G", d.paresCG, Mat());
+            d.paresAT.RecalculateNormals(); d.paresCG.RecalculateNormals();
+            var gAT = HoloMat.NovoMeshGO(raiz.transform, "pares A-T", d.paresAT, MatF());
+            var gCG = HoloMat.NovoMeshGO(raiz.transform, "pares C-G", d.paresCG, MatF());
             var pAT = gAT.AddComponent<ParteHolo>(); pAT.nome = "pares A-T"; pAT.apelidos = new[] { "pares at", "degraus a t", "adenina timina", "pares a-t" };
             pAT.pintorPersonalizado = col => { d.bases = false; Pintar(d.paresAT, col, 0.9f); };
             var pCG = gCG.AddComponent<ParteHolo>(); pCG.nome = "pares C-G"; pCG.apelidos = new[] { "pares cg", "degraus c g", "citosina guanina", "pares c-g" };
@@ -268,6 +275,17 @@ public class DnaHolo : MonoBehaviour
                 pts.Add(dir * 0.26f + Vector3.up * y); pts.Add(dir * 0.5f + Vector3.up * y);
                 var cc = CorFitaB; cc.a = 0.35f; cs.Add(cc); cs.Add(cc);
             }
+            // anel de cima (como na referencia): dois aneis finos acima da helice
+            float yt = Altura * 0.5f + 0.07f;
+            float[] raiosT = { 0.2f, 0.3f };
+            for (int r = 0; r < 2; r++)
+                for (int k = 0; k < 64; k++)
+                {
+                    float a0 = k / 64f * Mathf.PI * 2f, a1 = (k + 1) / 64f * Mathf.PI * 2f;
+                    pts.Add(new Vector3(Mathf.Cos(a0), 0, Mathf.Sin(a0)) * raiosT[r] + Vector3.up * yt);
+                    pts.Add(new Vector3(Mathf.Cos(a1), 0, Mathf.Sin(a1)) * raiosT[r] + Vector3.up * yt);
+                    var cc = CorFitaA; cc.a = r == 0 ? 0.7f : 0.35f; cs.Add(cc); cs.Add(cc);
+                }
             pts.Add(new Vector3(0, y, 0)); pts.Add(new Vector3(0, y + 0.07f, 0)); var cx = CorFitaA; cx.a = 0.8f; cs.Add(cx); cs.Add(cx);
             var m = HoloMat.MalhaDeLinhas(pts, cs, "BaseAneis");
             var go = HoloMat.NovoMeshGO(raiz.transform, "base", m, Mat());
@@ -312,6 +330,8 @@ public class DnaHolo : MonoBehaviour
         HoloMat.TornarPegavel(raiz);
         HoloRegistro.Adicionar(raiz, "dna_info", "", "infográfico do DNA", "dna_info", tamanhoPadrao, "{}");
         StartCoroutine(Surgir(raiz.transform));
+        StartCoroutine(RevelarPorAltura(raiz));
+        CriarTracos(raiz);
         atual = raiz;
         return raiz;
     }
@@ -412,6 +432,75 @@ public class DnaHolo : MonoBehaviour
             for (int k = 0; k < 8; k++) { cs[r * 16 + k] = ca; cs[r * 16 + 8 + k] = cb; }
         }
         m.colors = cs;
+    }
+
+    // montagem progressiva: cada malha da helice aparece de baixo para cima (alfa por vertice)
+    IEnumerator RevelarPorAltura(GameObject raiz)
+    {
+        var malhas = new List<Mesh>(); var base0 = new List<Color[]>(); var verts = new List<Vector3[]>();
+        foreach (var mf in raiz.GetComponentsInChildren<MeshFilter>())
+        {
+            var m = mf.sharedMesh;
+            if (m == null || m.colors.Length != m.vertexCount || mf.transform.IsChildOf(raiz.transform.Find("chamadas"))) continue;
+            malhas.Add(m); base0.Add(m.colors); verts.Add(m.vertices);
+        }
+        const float dur = 2.4f;
+        for (float t = 0; t < dur && raiz != null; t += Time.deltaTime)
+        {
+            float frente = Mathf.SmoothStep(0f, 1f, t / dur) * 1.25f;
+            for (int i = 0; i < malhas.Count; i++)
+            {
+                if (malhas[i] == null) continue;
+                var cs = new Color[base0[i].Length];
+                for (int k = 0; k < cs.Length; k++)
+                {
+                    float h = verts[i][k].y / Altura + 0.6f;   // ~0 na base, ~1,2 no topo
+                    cs[k] = base0[i][k]; cs[k].a *= Mathf.Clamp01((frente - h * 0.85f) / 0.15f);
+                }
+                malhas[i].colors = cs;
+            }
+            yield return null;
+        }
+        for (int i = 0; i < malhas.Count; i++) if (malhas[i] != null) malhas[i].colors = base0[i];
+    }
+
+    // 3 traços de luz com rastro percorrendo as fitas
+    void CriarTracos(GameObject raiz)
+    {
+        var mat = HoloUtil.NovoMaterialAditivo(Color.white, 1f, 0f);
+        for (int k = 0; k < 3; k++)
+        {
+            var go = new GameObject("Traco" + k);
+            go.transform.SetParent(raiz.transform, false);
+            var lr = go.AddComponent<LineRenderer>();
+            lr.useWorldSpace = false;
+            lr.sharedMaterial = mat;
+            lr.positionCount = 16;
+            lr.widthMultiplier = 0.006f;
+            lr.numCapVertices = 2;
+            var cor = k == 1 ? new Color(0.42f, 1f, 0.69f) : CorFitaA;
+            var grad = new Gradient();
+            grad.SetKeys(new[] { new GradientColorKey(cor, 0f), new GradientColorKey(cor, 1f) },
+                         new[] { new GradientAlphaKey(0f, 0f), new GradientAlphaKey(0.95f, 1f) });
+            lr.colorGradient = grad;
+            lr.widthCurve = new AnimationCurve(new Keyframe(0f, 0.1f), new Keyframe(1f, 1f));
+            lr.enabled = false;
+            StartCoroutine(CorrerTraco(lr, k % 2, k * 0.33f, k == 1 ? -0.17f : 0.2f));
+        }
+    }
+
+    IEnumerator CorrerTraco(LineRenderer lr, int fita, float fase, float velocidade)
+    {
+        yield return new WaitForSeconds(2.4f);
+        if (lr != null) lr.enabled = true;
+        float u = fase;
+        while (lr != null)
+        {
+            u = Mathf.Repeat(u + Time.deltaTime * velocidade, 1f);
+            for (int i = 0; i < lr.positionCount; i++)
+                lr.SetPosition(i, PontoFita(Mathf.Repeat(u - (lr.positionCount - 1 - i) * 0.006f * Mathf.Sign(velocidade), 1f), fita));
+            yield return null;
+        }
     }
 
     // surge de baixo para cima
