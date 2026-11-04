@@ -8,6 +8,8 @@ public static class ZettaExtras
     static readonly Type[] Modulos =
     {
         typeof(FormasMatematicas),
+        typeof(VistaExplodida),
+        typeof(GraficoHolo),
     };
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
