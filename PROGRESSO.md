@@ -30,6 +30,17 @@
 - A4: central em arco ao redor da cabeça, 2 camadas (0,9 m apps/comandos; 1,1 m cabeçalho/sistema), cada painel voltado para o usuário, lâmina de espessura 9 mm atrás do vidro, textos/ícones 1,4 cm e botões 2 cm à frente (paralaxe), 26 partículas de luz entre as camadas, entrada de trás para frente. `sortingOrder` fixa a ordem vidro < botões < textos (corrigiu botões escurecidos).
 - A5: `BotaoHolo` com BoxCollider (gatilho), acende quando o dedo se aproxima, afunda ao toque, clique sonoro (`SonsZetta`). Mantive a detecção por XR Hands (mesma de antes) em vez do poke do XRI: o XRI conflitaria com o grab dos hologramas. Sites=listar_sites, Modelos 3D=modelos_salvos, Notas=gerenciar_notas mostrar, Timers=resumo dos ativos, Desenhar=liga/desliga, Informações=clima+notícias; PARAR e FECHAR por toque.
 - Build de conferência: ver fim da seção.
+## B (funções novas) — feitas (verificadas no Editor por captura/Console; nada testado no headset)
+- B6 `FormasMatematicas` (`criar_forma_matematica`: mobius, klein, nó toroidal, DNA, toro, fractal; malhas procedurais normalizadas a 1 m). B7 `VistaExplodida` (`vista_explodida`). B8 `GraficoHolo` (`grafico_temperatura_semana` com Open-Meteo real e `criar_grafico`).
+- B9 `EscaneamentoHolo` (varredura após a foto da câmera). B10 `BriefingBomDia` (`bom_dia`: hora, notas, timers, clima, notícias). B11 `ModoFoco` (`modo_foco`: só um timer grande, o resto some e volta ao sair). B16 `SonsAmbiente` (sons de criar/apagar ligados ao `HoloRegistro`).
+- B12 `GestosDuplos` (duas mãos abrindo afastam os objetos; pinça dupla longa recolhe tudo). B13 `LinhaDoTempo` + `DiarioZetta` (log do dia em PlayerPrefs). B14 `EtiquetasSala` (classificações dos ARPlane: mesa, cadeira, chão, teto, parede). B15 `PortalClima` (portal com o clima real). B17 `ApresentacaoModelo` (`apresentar_modelo`: destaca cada peça enquanto a Zetta explica).
+- Todos os módulos novos entram pela lista de `ZettaExtras` (sem editar a cena) e registram as ferramentas no Awake.
+## C (arquitetura e qualidade) — feitas
+- C18: `AssistenteVoz` virou `partial class` em 5 arquivos (`.cs` núcleo/estado, `.Conexao`, `.Audio`, `.Rotulos`, `.Ferramentas`); movimentação mecânica de métodos, sem mudar comportamento (compila sem erros, 37 ferramentas continuam registradas).
+- C19: `EstadoZetta` (Espera/Ouvindo/Pensando/Falando/Erro), calculado uma vez por quadro; `EsferaZetta` e o texto de estado da `CentralZetta` só leem dele; evento `aoMudar`. `AssistenteVoz.Processando` exposto.
+- C20: testes automáticos como harness de Editor (menu `Zetta > Rodar testes`, relatório em `Docs/TESTES-ZETTA.md`; 16/16 passam, incluindo o registro das ferramentas em Play). Motivo de não usar asmdef de teste: assemblies de teste da Unity não referenciam o Assembly-CSharp.
+- C21: `DesempenhoHolo` (`mostrar_desempenho`): FPS, ms médio e pior (2 s), memória, nº de hologramas; borda verde/dourada/vermelha; canto inferior esquerdo. No Editor: ~211 FPS, 4,7 ms (CPU do PC, não representa o Quest).
+- C22: cache de modelos 3D por descrição (`Modelos3D/cache.json`; chave sem acento/pontuação/maiúscula; entrada com arquivo sumido é limpa). Só vale para "descricao" (a foto da câmera é sempre única).
 
 # 🎨 REDESIGN ZETTA (Direção B) — andamento por fase
 ## Fase 1 — Auditoria
