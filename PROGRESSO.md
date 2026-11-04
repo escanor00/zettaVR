@@ -1,5 +1,20 @@
 # PROGRESSO
 
+# 🌟 RESUMO — RODADA 7 (6 correções do teste no Quest)
+**Estado:** T1–T6 feitas e commitadas localmente (`5c61f7a`, `ce9ec9b`, `e9c9e87`). Console sem erros; 21/21 testes automáticos; build de conferência Android em `Builds/Android/Conferencia.apk` (**NÃO instalado** no Quest; nenhum push). Tudo conferido só no Editor. Um único build no fim (não um por tarefa: cada build leva ~8 min).
+**Mudanças:** voz não corta (pinça só na esfera, turno do servidor, pré-buffer, log do motivo do fim de fala); estilo "modelo científico" aditivo com fresnel (shader `Zetta/HoloAditivo`) e `modo_solido`; DNA conforme a referência e `criar_forma_matematica dna` agora usa o infográfico; rótulos sem sobreposição + balão de resposta; objetos nascem a 0,8 m dentro da visão sem sobrepor; esfera pequena (raio 0,3) mais no canto.
+**Capturas:** `Docs/capturas-redesign/r7-*.png`.
+**Não resolvido / limites:** "Zetta, pare" por voz só funciona com o microfone aberto (durante a fala vale pinça na esfera ou PARAR; barge-in por voz reabriria o eco que cortava a fala); só os rótulos do estilo científico usam o anti-sobreposição; nada medido de desempenho no Quest; causa exata do corte no vídeo não confirmada (as causas achadas estão em "1. Voz cortada"; o log "fim de fala (...)" mostra qual acontece).
+**Testar no Quest 3, em ordem** (`adb install -r Builds/Android/Conferencia.apk`):
+1. Pedir uma resposta longa ("explique como funciona a fotossíntese") e deixar terminar sem tocar em nada: não pode cortar. Repetir pegando/escalando um objeto enquanto ela fala: não pode cortar. Ver no logcat: `fim de fala (terminou)`.
+2. Durante a fala, segurar a pinça NA esfera (~1 s): interrompe, log `interrompido (pinça na esfera)`. Repetir com o botão PARAR.
+3. Esfera pequena no canto inferior direito; balão de resposta à esquerda dela, com quebra de linha, sem sair da visão.
+4. "Crie uma fita de Möbius" e "crie um toro": nascem à frente (~0,8 m), na altura dos olhos, um ao lado do outro, sem se cobrir; wireframe translúcido com traços de luz, nada chapado.
+5. "Zetta, modo sólido" no Möbius e "desligar" para voltar.
+6. "Mostre o DNA": fitas finas com nós, degraus separados, base de anéis, hexágonos, 3 chamadas; "mostre as bases" (A-T e C-G em cores diferentes); "criar forma DNA" deve dar o mesmo infográfico.
+7. Com 3 objetos criados, conferir que nenhum rótulo cobre outro texto, a esfera ou o balão.
+8. "Zetta, solte" (gravidade só aí) e "flutue".
+
 # 🔧 RODADA 7 (correções do teste no Quest) — em andamento
 ## 1. Voz cortada — feita (só Editor; compila sem erros)
 - Causas achadas: (a) `InterrupcaoPinca` interrompia com pinça segurada ~1 s em QUALQUER lugar (pegar/escalar objeto enquanto ela fala cortava a fala); agora só a pinça segurada na esfera interrompe; (b) `Interromper` armava `descartarSaida` mesmo com o turno já fechado no servidor, jogando fora a resposta seguinte; agora só arma se o turno do servidor ainda está aberto; (c) o mic só fechava com áudio no buffer ou 3 s sem áudio; agora fica fechado durante todo o turno do servidor (inclusive pausas de ferramenta lenta, até 10 s) + 0,9 s; (d) `Falar()` e quadros de imagem não são mais enviados no meio da fala (Falar espera ela terminar); (e) `NO_INTERRUPTION` só é desligado se o servidor reclamar do campo "activity" (queda de rede não desliga mais); (f) pré-buffer de ~250 ms na reprodução contra picote da rede.
