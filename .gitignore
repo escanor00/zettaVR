@@ -39,3 +39,6 @@ ZettaSegredos.asset.meta
 # Cópia somente leitura do código para o visualizador (gerada por Zetta > Exportar código)
 /Assets/Resources/Codigo/
 /Assets/Resources/Codigo.meta
+
+# Ponte PC: senha gerada localmente, nunca versionar
+/Docs/ponte-pc/.senha

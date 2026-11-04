@@ -10,4 +10,6 @@ public class ZettaSegredos : ScriptableObject
     public string githubToken;                                  // Estúdio de Sites: permissão só no repositório abaixo (Contents: Read and write)
     public string githubRepositorio = "escanor00/zetta-sites";  // dono/repositório (GitHub Pages ligado na branch main, raiz)
     public string tokenHuggingFace;                             // opcional: mais cota para o modelo 3D
+    public string senhaPonte;                                   // Ponte PC: gerada em Zetta > Ponte PC > Gerar senha (nunca escreva aqui à mão em arquivos versionados)
+    public string enderecoPonte;                                // Ponte PC: http://IP-do-PC:8765 (preenchido sozinho ao gerar a senha)
 }

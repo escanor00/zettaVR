@@ -44,7 +44,8 @@ public class ExportarCodigoZetta : IPreprocessBuildWithReport
         Directory.CreateDirectory(Pasta);
         foreach (var antigo in Directory.GetFiles(Pasta, "*.txt")) File.Delete(antigo);
 
-        var arquivos = Directory.GetFiles("Assets", "*.cs", SearchOption.TopDirectoryOnly).OrderBy(f => f).ToList();
+        // ZettaSegredos fica de fora: é a classe que guarda chaves e senhas
+        var arquivos = Directory.GetFiles("Assets", "*.cs", SearchOption.TopDirectoryOnly).Where(f => Path.GetFileNameWithoutExtension(f) != "ZettaSegredos").OrderBy(f => f).ToList();
         var textos = new Dictionary<string, string>();
         foreach (var f in arquivos)
         {
