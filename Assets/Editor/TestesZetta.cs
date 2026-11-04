@@ -217,6 +217,19 @@ public static class TestesZetta
             return CriadorHolograma.TentarCor("vermelhas", out _) ? null : "plural/feminino de cor";
         });
 
+        T("Matemática: parser seguro (precedência, implícito, erros)", () =>
+        {
+            Func<string, double> av = s => { if (!ExpressaoMatematica.Tentar(s, out var e, out var er)) throw new Exception(s + ": " + er); return e.Avaliar(3, 4, 0); };
+            if (av("-2^2") != -4) return "-2^2";
+            if (av("2^3^2") != 512) return "2^3^2";
+            if (av("2x+1") != 7) return "2x+1";
+            if (Math.Abs(av("raiz(x^2+y^2)") - 5) > 1e-9) return "raiz";
+            if (Math.Abs(av("sen(pi/2)") - 1) > 1e-9) return "sen";
+            foreach (var ruim in new[] { "foo(1)", "1+", "(", "x$", "" , "System.Exit(0)" })
+                if (ExpressaoMatematica.Tentar(ruim, out _, out _)) return "aceitou '" + ruim + "'";
+            return null;
+        });
+
         if (EditorApplication.isPlaying)
         {
             T("Ferramentas: todas registradas", () =>
@@ -226,7 +239,7 @@ public static class TestesZetta
                 var campo = typeof(AssistenteVoz).GetField("ferramentas", BindingFlags.Instance | BindingFlags.NonPublic);
                 var dic = campo != null ? campo.GetValue(voz) as System.Collections.IDictionary : null;
                 if (dic == null) return "dicionário de ferramentas não encontrado";
-                foreach (var n in new[] { "criar_forma_matematica", "vista_explodida", "criar_grafico", "bom_dia", "modo_foco", "linha_do_tempo", "etiquetas_sala", "portal_clima", "apresentar_modelo", "abrir_central", "fechar_central", "pintar_parte", "partes_objeto", "visibilidade_parte", "girar_objeto", "acao_objeto" })
+                foreach (var n in new[] { "criar_forma_matematica", "vista_explodida", "criar_grafico", "bom_dia", "modo_foco", "linha_do_tempo", "etiquetas_sala", "portal_clima", "apresentar_modelo", "abrir_central", "fechar_central", "pintar_parte", "partes_objeto", "visibilidade_parte", "girar_objeto", "acao_objeto", "mostrar_dna", "desenhar_superficie", "grafico_funcoes", "resolver_passo_a_passo", "calcular", "calculadora_holografica", "geometria_interativa", "modo_estrutura" })
                     if (!dic.Contains(n)) return "não registrada: " + n;
                 return dic.Count >= 30 ? null : "só " + dic.Count + " ferramentas";
             });

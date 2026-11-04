@@ -353,7 +353,7 @@ public class EstiloCientifico : MonoBehaviour
         for (int i = 0; i < 3; i++)
         {
             var q = GameObject.CreatePrimitive(PrimitiveType.Quad);
-            Destroy(q.GetComponent<Collider>());
+            DestroyImmediate(q.GetComponent<Collider>());
             q.name = "Marcador" + i;
             q.transform.SetParent(rotulos, false);
             q.GetComponent<Renderer>().sharedMaterial = matMarca;

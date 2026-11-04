@@ -67,7 +67,7 @@ public static class HoloUtil
     {
         var q = GameObject.CreatePrimitive(PrimitiveType.Quad);
         q.name = nome;
-        Object.Destroy(q.GetComponent<Collider>());
+        Object.DestroyImmediate(q.GetComponent<Collider>());
         q.transform.SetParent(pai, false);
         q.transform.localPosition = new Vector3(0, 0, z);
         float m = TemaZetta.MargemAura * 2f;

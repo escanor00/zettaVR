@@ -20,6 +20,21 @@
 - Captura: `Docs/capturas-redesign/r6-modo-cientifico-klein.png` (e `-toro.png`, primeira versão). Aviso no Console "Concave Mesh Colliders ... dynamic Rigidbody" ao pegar partes (só aviso; colisor não convexo nas partes).
 - **Limites:** modo estrutura não é salvo com a âncora; nada testado no headset; custo no Quest não medido.
 
+## 6. Infográfico do DNA — feita (só Editor)
+- `DnaHolo.cs`: ferramenta `mostrar_dna` (mostrar / bases / explicar / fechar), fábrica `dna_info` (salva com a âncora). Hélice vertical ciano-azul (2,5 voltas, 26 pares ≈ 10,5 por volta) sobre base de 3 anéis, fitas com nós luminosos (octaedros), pares de bases como degraus de luz (A-T e C-G em partes separadas; `bases` colore A dourado, T laranja, C verde, G rosa), 16 hexágonos translúcidos ao fundo, 3 chamadas em cotovelo ligando a hélice a painéis (FITA, PAR DE BASES, GENE) com info real e curta (2 pontes de H em A-T, 3 em C-G, ~10,5 pares/volta, ~20 mil genes, ~3,1 bilhões de pares) e gráfico "EXEMPLO ILUSTRATIVO" de % de G+C (valores aproximados, rotulado como exemplo). `explicar` acende as chamadas em sequência e devolve os fatos para a Zetta falar ("Zetta, explique o DNA").
+- Partes: fita A, fita B, pares A-T, pares C-G, base, hexagonos, chamadas (todas pintáveis, escondíveis, separáveis e salvas com a âncora). `Docs/referencia-dna.png` não existe; o visual é original.
+- Captura: `Docs/capturas-redesign/r6-dna-infografico.png`.
+
+## 7. Matemática holográfica — feita (só Editor)
+- `ExpressaoMatematica.cs`: parser de descida recursiva, sem eval/reflexão (x, y, t, pi, e; + - * / ^; multiplicação implícita; sen/cos/tan/exp/ln/log/raiz/abs/pot...; limite de 240 caracteres e 48 níveis; erros em português). Teste automático (22/22 testes).
+- (a) `desenhar_superficie` (z = f(x,y)): malha 40×40 em luz, cores por altura, eixos numerados, giratória/escalável (`MatematicaHolo.cs`). Captura `r6-superficie-sen-cos.png`.
+- (b) `grafico_funcoes`: até 6 curvas sobrepostas em cores diferentes, com legenda.
+- (c) `resolver_passo_a_passo` (`ResolucaoCalculadora.cs`): painel com problema, etapas reveladas uma a uma (a Zetta explica e chama `proxima`), ANTERIOR/PRÓXIMA/FECHAR por toque, resposta em destaque. Captura `r6-resolucao-passo-a-passo.png`. O Gemini é quem resolve; o painel só mostra.
+- (d) `calculadora_holografica` + `calcular`: 5×6 teclas por toque com o mesmo parser.
+- (e) `geometria_interativa` (`GeometriaHolo.cs`): triângulo, quadrilátero e tetraedro com vértices pegáveis e medidas ao vivo (lados em cm, ângulos, área/volume).
+- Também: as telas deste grupo e do DNA usam `DestroyImmediate` no colisor das quads (acaba o aviso "Concave Mesh Colliders" com Rigidbody).
+- **Limites:** nada validado no headset; calculadora/geometria/resolução abrem na mesma região à frente (se abrir várias ao mesmo tempo se sobrepõem); gráficos de funções/geometria/calculadora não passaram por captura individual; não há âncora para o modo estrutura.
+
 # 🌟 RESUMO FINAL — RODADA 5 (28 tarefas: A1–A5, B6–B17, C18–C22, D23–D28)
 **Estado:** as 28 tarefas foram feitas e commitadas localmente (um commit por tarefa/grupo, `778941b` … `fca2084`). Console sem erros; 19/19 testes automáticos passam; build de conferência Android em `Builds/Android/Conferencia.apk` (**NÃO instalado** no Quest; nenhum push; nada publicado). Nada foi validado com o headset: tudo abaixo foi conferido só no Editor (capturas em `Docs/capturas-redesign/`).
 
