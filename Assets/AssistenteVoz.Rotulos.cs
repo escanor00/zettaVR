@@ -80,7 +80,7 @@ public partial class AssistenteVoz
         textoStatus.text = "";
 
         // botão poke PARAR: aparece só enquanto a Zetta fala (o mic fica mudo nesse momento)
-        botaoParar = BotaoHolo.Criar(alvoStatus, "PARAR", new Vector3(0f, -0.06f, 0f), new Vector2(0.11f, 0.045f), Interromper);
+        botaoParar = BotaoHolo.Criar(alvoStatus, "PARAR", new Vector3(0f, -0.06f, 0f), new Vector2(0.11f, 0.045f), () => Interromper("botão PARAR"));
         botaoParar.gameObject.SetActive(false);
     }
 

@@ -212,7 +212,7 @@ public class CentralZetta : MonoBehaviour
 
     void MontarBarra(Transform p)
     {
-        BotaoHolo.Criar(p, "PARAR", new Vector3(-0.2f, 0.022f, TemaZetta.ProfundidadeBotao), new Vector2(0.15f, 0.075f), () => { if (voz != null) voz.Interromper(); });
+        BotaoHolo.Criar(p, "PARAR", new Vector3(-0.2f, 0.022f, TemaZetta.ProfundidadeBotao), new Vector2(0.15f, 0.075f), () => { if (voz != null) voz.Interromper("botão PARAR"); });
         BotaoHolo.Criar(p, "FECHAR", new Vector3(0.2f, 0.022f, TemaZetta.ProfundidadeBotao), new Vector2(0.15f, 0.075f), () => Fechar("botão FECHAR"));
 
         // microfone ao centro: círculo de vidro + ícone + medidor de nível

@@ -17,7 +17,7 @@ public class InterrupcaoPinca : MonoBehaviour
 
     AnelHolografico anel;
     XROrigin origem;
-    bool pincaAnterior;
+    bool pincaAnterior, pincaNaEsfera;
     public float raioAnel = 0.22f;
 
     void Update()
@@ -31,13 +31,13 @@ public class InterrupcaoPinca : MonoBehaviour
             if (sub == null || !sub.running) return;
         }
         PincaNoAnel();
-        if (!voz.Falando) { desde = -1f; return; }
-        if (!(Pinca(sub.rightHand) || Pinca(sub.leftHand))) { desde = -1f; return; }
+        // só a pinça SEGURADA na esfera interrompe; pinçar/pegar objetos em outro lugar nunca corta a fala
+        if (!voz.Falando || !pincaNaEsfera) { desde = -1f; return; }
         if (desde < 0f) desde = Time.time;
         else if (Time.time - desde >= segundos)
         {
             desde = -1f;
-            voz.Interromper();
+            voz.Interromper("pinça na esfera");
         }
     }
 
@@ -45,6 +45,7 @@ public class InterrupcaoPinca : MonoBehaviour
     void PincaNoAnel()
     {
         bool agora = false;
+        pincaNaEsfera = false;
         foreach (var mao in new[] { sub.rightHand, sub.leftHand })
         {
             if (!Pinca(mao)) continue;
@@ -60,6 +61,7 @@ public class InterrupcaoPinca : MonoBehaviour
             if (!voz.Falando) voz.Acordar();
             if (CentralZetta.Instancia != null) CentralZetta.Instancia.Alternar();   // pinça na esfera abre a central (renova o tempo se já aberta)
         }
+        pincaNaEsfera = agora;
         pincaAnterior = agora;
     }
 

@@ -1,5 +1,12 @@
 # PROGRESSO
 
+# 🔧 RODADA 7 (correções do teste no Quest) — em andamento
+## 1. Voz cortada — feita (só Editor; compila sem erros)
+- Causas achadas: (a) `InterrupcaoPinca` interrompia com pinça segurada ~1 s em QUALQUER lugar (pegar/escalar objeto enquanto ela fala cortava a fala); agora só a pinça segurada na esfera interrompe; (b) `Interromper` armava `descartarSaida` mesmo com o turno já fechado no servidor, jogando fora a resposta seguinte; agora só arma se o turno do servidor ainda está aberto; (c) o mic só fechava com áudio no buffer ou 3 s sem áudio; agora fica fechado durante todo o turno do servidor (inclusive pausas de ferramenta lenta, até 10 s) + 0,9 s; (d) `Falar()` e quadros de imagem não são mais enviados no meio da fala (Falar espera ela terminar); (e) `NO_INTERRUPTION` só é desligado se o servidor reclamar do campo "activity" (queda de rede não desliga mais); (f) pré-buffer de ~250 ms na reprodução contra picote da rede.
+- Log por fala: `fim de fala (terminou | interrompido (pinça na esfera/botão PARAR/voz/servidor) | erro (conexão caiu)), N s, falhas de buffer=N`.
+- "Zetta, pare": só funciona quando o microfone está aberto (antes da fala ou durante "processando"); durante a fala o mic fica fechado de propósito (sem cancelamento de eco), então lá vale pinça na esfera ou PARAR. Não implementei barge-in por voz durante a fala: reabriria o eco que causava o corte.
+- Sons espaciais/ondas da barra: usam outro AudioSource (PlayOneShot) e não tocam na fonte da voz; nada a corrigir ali.
+
 # 🌟 RESUMO FINAL — RODADA 6 (7 tarefas)
 **Estado:** T1–T7 feitas e commitadas localmente (`f280c1e`, `195faea`, `f605091`, `08070d9`). Console sem erros; 22/22 testes automáticos; build de conferência Android em `Builds/Android/Conferencia.apk` (**NÃO instalado** no Quest; nenhum push). Tudo conferido só no Editor; nada com mãos reais, TRELLIS real ou medição no Quest.
 **Arquivos novos:** `ObjetoInterativo.cs`, `FerramentasPartes.cs`, `EstiloCientifico.cs`, `DnaHolo.cs`, `ExpressaoMatematica.cs`, `MatematicaHolo.cs`, `ResolucaoCalculadora.cs`, `GeometriaHolo.cs`. **Capturas:** `Docs/capturas-redesign/r6-*.png`.

@@ -103,6 +103,14 @@ public partial class AssistenteVoz : MonoBehaviour
     int falhasSemSetup;
     bool turnoAberto;
     float ultimoAudioEm;
+    // turno do servidor: abre no primeiro áudio/ferramenta, fecha em turnComplete/interrupted. Mantém o mic fechado em pausas longas (ferramenta lenta).
+    bool turnoServidorAberto;
+    float ultimaMsgModelo;
+    string motivoFim = "terminou";
+    string falaPendente;
+    bool falavaAntes;
+    float inicioFala;
+    int underruns;
     TextMeshPro textoStatus;
     RectTransform alvoStatus;
     BotaoHolo botaoParar;
@@ -111,13 +119,14 @@ public partial class AssistenteVoz : MonoBehaviour
     public bool Processando => processando;
 
     // Para a fala atual: limpa o áudio já recebido e ignora o resto do turno.
-    public void Interromper()
+    public void Interromper(string quem = "usuário")
     {
         if (!falando && !processando) return;
-        Debug.Log("AssistenteVoz: fala interrompida pelo usuário.");
+        motivoFim = "interrompido (" + quem + ")";
         LimparReproducao();
         turnoAberto = false;
-        descartarSaida = true;
+        // só descarta o resto do turno se o servidor ainda está nele; senão a próxima resposta inteira seria jogada fora
+        descartarSaida = turnoServidorAberto;
         processando = false;
         novoTurno = true;
     }
@@ -212,7 +221,8 @@ public partial class AssistenteVoz : MonoBehaviour
         {
             yield return ConectarEOuvir();
             if (setupOk) { i = 0; setupOk = false; falhasSemSetup = 0; }
-            else if (semInterrupcaoServidor && ++falhasSemSetup >= 2 && Application.internetReachability != NetworkReachability.NotReachable)
+            else if (semInterrupcaoServidor && ++falhasSemSetup >= 2 && Application.internetReachability != NetworkReachability.NotReachable
+                     && (ultimoErro ?? "").ToLowerInvariant().Contains("activity")) // só desliga se o servidor reclamou DESSE campo (queda de rede não conta)
             {
                 // duas sessões seguidas nem chegaram ao setupComplete: pode ser o campo novo; volta ao modo só com mic mudo
                 semInterrupcaoServidor = false;
@@ -233,6 +243,8 @@ public partial class AssistenteVoz : MonoBehaviour
         if (acordada && Time.time - ultimaAtividade > tempoAtivaSegundos) acordada = false;
         falando = contagem > 0 || (turnoAberto && Time.time - ultimoAudioEm < 3f);
         if (falando) tempoFala = Time.time;
+        RegistrarFimDeFala();
+        if (falaPendente != null && !falando && !turnoServidorAberto && pronto) { var f = falaPendente; falaPendente = null; Falar(f); }
         if (clipMic != null)
         {
             VigiarMicrofone();
@@ -246,6 +258,18 @@ public partial class AssistenteVoz : MonoBehaviour
     }
 
     float pausadoEm;
+
+    // Um log por fala: duração e como acabou (terminou, interrompido pela pinça/PARAR/voz, servidor, erro/conexão).
+    void RegistrarFimDeFala()
+    {
+        if (falando && !falavaAntes) { inicioFala = Time.time; underruns = 0; motivoFim = "terminou"; }
+        if (!falando && falavaAntes)
+        {
+            Debug.Log("AssistenteVoz: fim de fala (" + motivoFim + "), " + (Time.time - inicioFala).ToString("0.0") + " s, falhas de buffer=" + underruns);
+            motivoFim = "terminou";
+        }
+        falavaAntes = falando;
+    }
 
     void OnDestroy()
     {

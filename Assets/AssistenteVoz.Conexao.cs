@@ -51,7 +51,7 @@ public partial class AssistenteVoz
                         r = await ws.ReceiveAsync(new ArraySegment<byte>(buf), ct);
                         if (r.MessageType == WebSocketMessageType.Close)
                         {
-                            ultimoErro = "servidor fechou: " + r.CloseStatus;
+                            ultimoErro = "servidor fechou: " + r.CloseStatus + " " + Sanitizar(r.CloseStatusDescription);
                             Debug.LogWarning("AssistenteVoz: servidor fechou a conexão: " + r.CloseStatus + " - " + Sanitizar(r.CloseStatusDescription));
                             return;
                         }
@@ -72,6 +72,7 @@ public partial class AssistenteVoz
         }
         finally
         {
+            if (falando) motivoFim = "erro (conexão caiu)";
             pronto = false;
             fechou = true;
         }
@@ -136,6 +137,8 @@ public partial class AssistenteVoz
     public void Falar(string pedido)
     {
         if (!pronto) return;
+        // falar em cima da própria fala (ou mandar entrada no meio do turno) cortaria a frase: espera ela terminar
+        if (falando || turnoServidorAberto) { falaPendente = pedido; return; }
         acordada = true;
         ultimaAtividade = Time.time;
         entradaTurno = "";
@@ -147,7 +150,7 @@ public partial class AssistenteVoz
     // Envia um quadro (JPEG) para a Gemini Live; ela o usa como contexto da próxima resposta.
     public void EnviarImagem(byte[] jpeg)
     {
-        if (!pronto || jpeg == null || jpeg.Length == 0) return;
+        if (!pronto || jpeg == null || jpeg.Length == 0 || falando || turnoServidorAberto) return;
         EnviarSemEsperar(new JObject
         {
             ["realtimeInput"] = new JObject { ["video"] = new JObject { ["mimeType"] = "image/jpeg", ["data"] = Convert.ToBase64String(jpeg) } }
@@ -176,7 +179,9 @@ public partial class AssistenteVoz
         {
             if (sc["interrupted"] != null && (bool)sc["interrupted"])
             {
+                motivoFim = "interrompido (servidor)";
                 descartarSaida = false;
+                turnoServidorAberto = false;
                 turnoAberto = false;
                 LimparReproducao();
                 novoTurno = true;
@@ -192,6 +197,7 @@ public partial class AssistenteVoz
                     acordada = true;
                     ultimaAtividade = Time.time;
                 }
+                if (acordada && (falando || processando) && PedidoDeParar(entradaTurno)) Interromper("voz");
                 processando = acordada;
                 inicioProcessando = Time.time;
             }
@@ -205,6 +211,8 @@ public partial class AssistenteVoz
                     if (string.IsNullOrEmpty(dados)) continue;
                     // a Gemini só responde se ela mesma detectou o chamado: vale como ativação
                     audioNoTurno = true;
+                    turnoServidorAberto = true;
+                    ultimaMsgModelo = Time.time;
                     acordada = true;
                     ultimaAtividade = Time.time;
                     processando = false;
@@ -230,6 +238,7 @@ public partial class AssistenteVoz
                 audioNoTurno = false;
                 processando = false;
                 descartarSaida = false;
+                turnoServidorAberto = false;
                 turnoAberto = false;
                 novoTurno = true;
                 novoTurnoEntrada = true;
@@ -240,6 +249,7 @@ public partial class AssistenteVoz
         var tc = m["toolCall"]?["functionCalls"] as JArray;
         if (tc != null)
         {
+            if (turnoServidorAberto) ultimaMsgModelo = Time.time;
             var respostas = new JArray();
             foreach (var f in tc)
             {
@@ -265,6 +275,17 @@ public partial class AssistenteVoz
             EnviarSemEsperar(new JObject { ["toolResponse"] = new JObject { ["functionResponses"] = respostas } }
                 .ToString(Newtonsoft.Json.Formatting.None));
         }
+    }
+
+    // "Zetta, pare" / "chega" / "silêncio": só chega aqui se o mic estava aberto (ela não fala em cima do usuário)
+    static bool PedidoDeParar(string frase)
+    {
+        var f = frase.ToLowerInvariant().Trim(' ', '.', ',', '!', '?');
+        int z = f.LastIndexOf("zetta", StringComparison.Ordinal);
+        if (z < 0) return false;
+        var resto = f.Substring(z + 5).Trim(' ', '.', ',', '!', '?');
+        if (resto.Split(' ').Length > 3) return false;   // "pare" dentro de um pedido maior ("pare de girar") não conta
+        return resto == "pare" || resto == "chega" || resto == "silêncio" || resto == "silencio" || resto == "cala a boca" || resto == "fique quieta";
     }
 
     string Sanitizar(string s)

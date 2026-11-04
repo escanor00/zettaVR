@@ -123,7 +123,9 @@ public partial class AssistenteVoz
         for (int k = 0; k < tmp.Length; k++) soma += tmp[k] * tmp[k];
         float rms = tmp.Length > 0 ? Mathf.Sqrt(soma / tmp.Length) : 0f;
         nivelMic = Mathf.Lerp(nivelMic, Mathf.Clamp01(rms * 8f), 0.5f);
-        bool silenciado = silenciarMicEnquantoFala && (falando || Time.time - tempoFala < 0.9f);
+        // fechado durante todo o turno da Zetta (inclui pausas de ferramenta lenta, até 10 s), mais 0,9 s de cauda
+        bool noTurno = turnoServidorAberto && Time.time - ultimaMsgModelo < 10f;
+        bool silenciado = silenciarMicEnquantoFala && (falando || noTurno || Time.time - tempoFala < 0.9f);
         if (!pronto || silenciado) { bufferMic.Clear(); return; }
         bufferMic.AddRange(tmp);
 
@@ -162,6 +164,7 @@ public partial class AssistenteVoz
         if (taxa != TaxaSaida) amostras = Reamostrar(amostras, taxa, TaxaSaida);
         turnoAberto = true;
         ultimoAudioEm = Time.time;
+        ultimoEnfileirar = relogio.ElapsedMilliseconds;
         lock (trava)
         {
             foreach (var a in amostras)
@@ -176,8 +179,14 @@ public partial class AssistenteVoz
 
     void LimparReproducao()
     {
-        lock (trava) { leitura = escrita = contagem = 0; }
+        lock (trava) { leitura = escrita = contagem = 0; reproduzindo = false; }
     }
+
+    // pré-buffer: só começa a tocar com ~250 ms na fila (ou 150 ms sem novos dados), para a rede não picotar a fala
+    static readonly System.Diagnostics.Stopwatch relogio = System.Diagnostics.Stopwatch.StartNew();
+    volatile bool reproduzindo;
+    long ultimoEnfileirar;
+    const int PreBuffer = TaxaSaida / 4;
 
     // roda na thread de áudio
     void LerPcm(float[] dados)
@@ -185,9 +194,11 @@ public partial class AssistenteVoz
         float soma = 0f;
         lock (trava)
         {
+            if (!reproduzindo && contagem > 0 && (contagem >= PreBuffer || relogio.ElapsedMilliseconds - ultimoEnfileirar > 150)) reproduzindo = true;
+            if (reproduzindo && contagem == 0) { reproduzindo = false; if (turnoAberto) underruns++; }
             for (int i = 0; i < dados.Length; i++)
             {
-                if (contagem > 0)
+                if (reproduzindo && contagem > 0)
                 {
                     dados[i] = anel[leitura];
                     leitura = (leitura + 1) % anel.Length;
