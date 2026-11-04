@@ -65,6 +65,7 @@ public class EsferaZetta : MonoBehaviour
     // ---- estado ----
     float giro = 0.3f, brilho = 0.35f, contracao = 1f, pulso, rajada, volAnterior, erroAte = -1f, tempoEspiral;
     string ultimoErroVisto = "";
+    Vector3 escalaBase; bool escalaLida;
     int quadros; float somaMs;
     System.Diagnostics.Stopwatch cron = new System.Diagnostics.Stopwatch();
 
@@ -291,6 +292,9 @@ public class EsferaZetta : MonoBehaviour
         else if (ouvindo) { alvoGiro = 0.9f; alvoBrilho = 1f; alvoContr = 0.72f; }
         else if (processando) { alvoGiro = 3.2f; alvoBrilho = 1.2f; alvoContr = 0.92f; }
         else { alvoGiro = 0.7f; alvoBrilho = 0.85f; }
+        alvoGiro *= AjustesZetta.Velocidade;   // ajuste ao vivo (AjustesHolo)
+        if (!escalaLida) { escalaBase = transform.localScale; escalaLida = true; }
+        transform.localScale = escalaBase * AjustesZetta.TamanhoEsfera;
 
         float vol = voz != null ? voz.volumeSaida : 0f;
         if (falando && vol - volAnterior > 0.12f) rajada = 1f;       // pico de voz → faíscas extras
@@ -313,7 +317,7 @@ public class EsferaZetta : MonoBehaviour
         mat.SetColor("_CorNucleo", Color.Lerp(nucleoAtual, Nucleo(red), mixErro));
         mat.SetColor("_CorBorda", Color.Lerp(bordaAtual, red.borda, mixErro));
         if (voz != null) { var cf = Color.Lerp(Color.Lerp(bordaAtual, Color.white, 0.2f), red.borda, mixErro); cf.a = 1f; voz.corFala = cf; }
-        mat.SetFloat("_Brilho", (brilho + 0.9f * pulso + 0.8f * mixErro) * 2.3f);
+        mat.SetFloat("_Brilho", (brilho + 0.9f * pulso + 0.8f * mixErro) * 2.3f * AjustesZetta.BrilhoEsfera);
         mat.SetVector("_Centro", transform.position);
         mat.SetFloat("_Raio", Mathf.Max(0.0001f, transform.lossyScale.x));
 

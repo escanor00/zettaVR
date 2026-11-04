@@ -142,6 +142,17 @@ public static class TestesZetta
             finally { if (System.IO.File.Exists(arq)) System.IO.File.Delete(arq); }
         });
 
+        T("Ajustes: limites, gravação e restaurar", () =>
+        {
+            AjustesZetta.Definir("velocidade", 99f);
+            if (!Mathf.Approximately(AjustesZetta.Velocidade, 2.5f)) return "não limitou o máximo: " + AjustesZetta.Velocidade;
+            AjustesZetta.Definir("tamanho", 0.01f);
+            if (!Mathf.Approximately(AjustesZetta.TamanhoEsfera, 0.6f)) return "não limitou o mínimo";
+            if (!Mathf.Approximately(PlayerPrefs.GetFloat("zetta_aj_velocidade"), 2.5f)) return "não gravou no PlayerPrefs";
+            AjustesZetta.Restaurar();
+            return Mathf.Approximately(AjustesZetta.Velocidade, 1f) && Mathf.Approximately(AjustesZetta.TamanhoEsfera, 1f) ? null : "restaurar falhou";
+        });
+
         T("AssistenteVoz: classes parciais mantêm os métodos", () =>
         {
             var t = typeof(AssistenteVoz);

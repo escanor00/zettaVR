@@ -34,6 +34,8 @@ Shader "Zetta/VidroHolo"
             fixed4 _Color, _CorTopo, _CorBase, _CorBorda;
             float4 _Tamanho;
             float _Raio, _Espessura, _Brilho, _Realce, _Margem, _Aura;
+            // ajustes ao vivo (AjustesZetta): globais; 0 = não definido → 1
+            float _ZettaOpac, _ZettaBorda;
 
             struct appdata { float4 vertex : POSITION; float2 uv : TEXCOORD0; UNITY_VERTEX_INPUT_INSTANCE_ID };
             struct v2f { float4 pos : SV_POSITION; float2 uv : TEXCOORD0; UNITY_VERTEX_OUTPUT_STEREO };
@@ -67,12 +69,13 @@ Shader "Zetta/VidroHolo"
                 float af = saturate(fundo.a + faixa + _Realce * 0.2) * dentro * (1.0 - borda);
                 float3 rgb = (fundo.rgb + _CorBorda.rgb * (faixa * 2.0 + _Realce * 0.3)) * af;
                 // borda sólida e brilhante + aura aditiva (fora e um pouco dentro), sem escurecer o que está atrás
-                float luz = _Brilho * (0.8 + 0.2 * t);
+                float luz = _Brilho * (0.8 + 0.2 * t) * (_ZettaBorda > 0.0 ? _ZettaBorda : 1.0);
                 rgb += _CorBorda.rgb * borda * luz;
                 float aura = (d > 0.0 ? exp(-d / max(_Margem, 0.0001) * 3.5) * _Aura : 0.0) + dentro * exp(d / 0.008) * 0.3;
                 rgb += _CorBorda.rgb * aura * _Brilho * 0.6 * (1.0 - borda);
                 float a = saturate(af + borda);
-                return fixed4(rgb * _Color.a, a * _Color.a);
+                float k = _Color.a * (_ZettaOpac > 0.0 ? _ZettaOpac : 1.0);
+                return fixed4(rgb * k, saturate(a * k));
             }
             ENDCG
         }
