@@ -13,6 +13,11 @@ public static class ZettaExtras
         typeof(BriefingBomDia),
         typeof(ModoFoco),
         typeof(SonsAmbiente),
+        typeof(GestosDuplos),
+        typeof(LinhaDoTempo),
+        typeof(EtiquetasSala),
+        typeof(PortalClima),
+        typeof(ApresentacaoModelo),
     };
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]

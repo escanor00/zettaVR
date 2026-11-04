@@ -196,7 +196,7 @@ public class EstudioSites : MonoBehaviour
         if (!noAr) { Falha(titulo, "demorou"); StartCoroutine(AguardarTardio(site, titulo, marca)); yield break; }
 
         ultimaFalha = "";
-        Painel("Site: " + titulo, "no ar!\n" + site.url, 40);
+        Painel("Site: " + titulo, "no ar!\n" + site.url, 40); DiarioZetta.Registrar("site", titulo);
         AbrirNoNavegador(site.url);
         voz?.Falar("o site " + titulo + " está no ar e acabei de abrir no navegador do óculos. Avise em uma frase curta e animada.");
     }
@@ -213,7 +213,7 @@ public class EstudioSites : MonoBehaviour
             if (pg.codigo == 200 && pg.texto != null && pg.texto.Contains(marca))
             {
                 ultimaFalha = "";
-                Painel("Site: " + titulo, "no ar!\n" + site.url, 40);
+                Painel("Site: " + titulo, "no ar!\n" + site.url, 40); DiarioZetta.Registrar("site", titulo);
                 AbrirNoNavegador(site.url);
                 voz?.Falar("o site " + titulo + " finalmente ficou no ar e acabei de abrir no navegador do óculos. Avise em uma frase curta.");
                 yield break;
