@@ -145,3 +145,7 @@ Resumo e lista de testes do headset no topo do PROGRESSO.md. Módulos entram pel
 - "Zetta, escaneie este objeto/ambiente": captura como no OpenQuestCapture e reconstrução 3D na nuvem (Gaussian splatting).
 - Fios de luz com física conectando hologramas (ideia das cordas do NorthStar).
 - Navegador dentro do app (painel holográfico com o site), caso migre para o Meta Spatial SDK.
+
+## Rodada 6 (feita, só no Editor)
+- T1 central estável; T2–T4 cores, cores por parte e objetos feitos de partes (`ObjetoInterativo`); T5 estilo científico + modo estrutura; T6 infográfico do DNA; T7 matemática holográfica (superfície, funções, passo a passo, calculadora, geometria). Detalhes e lista de testes no Quest no topo do PROGRESSO.md.
+- Próximo: validar no headset, medir desempenho, salvar o modo estrutura com a âncora, separar a posição das telas de matemática.

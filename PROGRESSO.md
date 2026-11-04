@@ -1,6 +1,22 @@
 # PROGRESSO
 
-# 🔧 RODADA 6 (7 tarefas) — andamento
+# 🌟 RESUMO FINAL — RODADA 6 (7 tarefas)
+**Estado:** T1–T7 feitas e commitadas localmente (`f280c1e`, `195faea`, `f605091`, `08070d9`). Console sem erros; 22/22 testes automáticos; build de conferência Android em `Builds/Android/Conferencia.apk` (**NÃO instalado** no Quest; nenhum push). Tudo conferido só no Editor; nada com mãos reais, TRELLIS real ou medição no Quest.
+**Arquivos novos:** `ObjetoInterativo.cs`, `FerramentasPartes.cs`, `EstiloCientifico.cs`, `DnaHolo.cs`, `ExpressaoMatematica.cs`, `MatematicaHolo.cs`, `ResolucaoCalculadora.cs`, `GeometriaHolo.cs`. **Capturas:** `Docs/capturas-redesign/r6-*.png`.
+**Desempenho (só Editor, Quest não medido):** materiais Sprites/Default, sem pós-processamento; custo maior = cubo com 6 partes, grades/nervuras do estilo científico (~1300 arestas por parte), DNA (~26 degraus + 2×140 segmentos). Medir no Quest com vários objetos; se pesar, reduzir `maxObjetos`.
+**Testar no Quest 3, em ordem** (`adb install -r Builds/Android/Conferencia.apk`):
+1. Central: tocar/pinçar a esfera (abre uma vez só), olhar para ela e esperar >15 s (não fecha), dizer "Zetta, feche a central".
+2. "Crie um cubo vermelho"; "pinte de azul mais escuro"; "cada face de uma cor"; "base dourada e resto azul".
+3. Pegar com uma mão, escalar com duas; "abra" / "junte"; pegar uma parte separada; pinçar uma parte (nome aparece); "gire" / "pare de girar".
+4. Sistema solar e .glb do TRELLIS: "abra", "pinte <parte>", "tire <parte>".
+5. Forma matemática (toro, Klein): estilo científico, "Zetta, modo estrutura".
+6. "Mostre o DNA", "mostre as bases", "explique o DNA", "desenrole o DNA".
+7. "Desenhe z = sen(x)*cos(y)"; "mostre os gráficos de sen(x) e cos(x)".
+8. "Resolva 2x + 3 = 11" (etapas em sequência); "abra a calculadora" (tocar teclas).
+9. "Mostre um triângulo interativo" (arrastar vértices, medidas mudam).
+10. Reiniciar o app e conferir que cores/estado voltam com as âncoras.
+
+# 🔧 RODADA 6 (7 tarefas) — detalhes por tarefa
 ## 1. Central abre e fecha sozinha — feita (só Editor)
 - Causas achadas: (a) `PincaNoAnel` só rodava com a Zetta calada, então `pincaAnterior` ficava velho e uma pinça segurada reabria/alternava ao fim da fala; (b) pinça alternava (abria e fechava) e outros módulos (`bom dia`, `modo foco`, código, mapa, painel de info) chamavam `Fechar`; (c) `fechar_central` podia vir de "abra" mal ouvido; (d) recolhia em 15 s mesmo olhando para ela.
 - Agora: pinça/toque na esfera só ABRE (com ela aberta só renova o tempo), debounce 0,5 s, `PincaNoAnel` roda sempre (e só acorda quando calada). A central só fecha por "Zetta, feche a central" (a ferramenta `fechar_central` é ignorada se a frase ouvida não contém fech/recolh/esconda/some), botão FECHAR ou **60 s** sem olhar para ela, mão a <0,35 m, voz (ouvindo/pensando/falando) ou toque. Removidos os `Fechar` de outros módulos e dos botões de app (renovam o tempo). O log registra "CentralZetta: fechada, pedido por: <quem>".
