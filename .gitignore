@@ -42,3 +42,6 @@ ZettaSegredos.asset.meta
 
 # Ponte PC: senha gerada localmente, nunca versionar
 /Docs/ponte-pc/.senha
+
+# Cache nativo de compilacao Android
+/.utmp/
