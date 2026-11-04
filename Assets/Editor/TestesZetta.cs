@@ -122,6 +122,26 @@ public static class TestesZetta
             finally { EstadoZetta.aoMudar -= h; EstadoZetta.ForcarParaTeste(inicial); }
         });
 
+        T("Cache 3D: chave normalizada e ida e volta", () =>
+        {
+            if (GeradorModelo3D.ChaveCache("Um  GATO, Sentado!") != GeradorModelo3D.ChaveCache("um gato sentado")) return "chaves diferentes";
+            if (GeradorModelo3D.ChaveCache("Cão") != "cao") return "acento não removido";
+            string pasta = System.IO.Path.Combine(Application.persistentDataPath, "Modelos3D");
+            System.IO.Directory.CreateDirectory(pasta);
+            string arq = System.IO.Path.Combine(pasta, "teste_cache.glb");
+            System.IO.File.WriteAllBytes(arq, new byte[] { 1 });
+            string desc = "objeto de teste do cache zzz";
+            try
+            {
+                if (GeradorModelo3D.TentarCache(desc, out _)) return "achou antes de guardar";
+                GeradorModelo3D.GuardarNoCache(desc, arq);
+                if (!GeradorModelo3D.TentarCache("Objeto de TESTE do cache zzz!", out var c) || c != arq) return "não achou depois de guardar";
+                System.IO.File.Delete(arq);
+                return GeradorModelo3D.TentarCache(desc, out _) ? "entrada de arquivo sumido não foi limpa" : null;
+            }
+            finally { if (System.IO.File.Exists(arq)) System.IO.File.Delete(arq); }
+        });
+
         T("AssistenteVoz: classes parciais mantêm os métodos", () =>
         {
             var t = typeof(AssistenteVoz);

@@ -1,6 +1,9 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
+using System.Text;
 using System.Threading.Tasks;
 using GLTFast;
 using Newtonsoft.Json.Linq;
@@ -64,6 +67,12 @@ public class GeradorModelo3D : MonoBehaviour
         string desc = args.Value<string>("descricao") ?? "";
         if (origem != "olhando" && origem != "descricao") return new JObject { ["erro"] = "origem inválida" };
         if (origem == "descricao" && string.IsNullOrWhiteSpace(desc)) return new JObject { ["erro"] = "faltou a descrição do objeto" };
+        if (origem == "descricao" && TentarCache(desc, out var emCache))
+        {
+            var posC = HoloUtil.PontoNaVista(new Vector3(0, 0, 0.8f));
+            CriarRaizGlb(posC, HoloUtil.OlharParaUsuario(posC), emCache, desc.Trim(), tamanhoFinal, true);
+            return new JObject { ["result"] = "esse modelo já estava guardado; apareceu na hora, sem gerar de novo" };
+        }
         StartCoroutine(Fluxo(origem, desc));
         return new JObject { ["result"] = "geração iniciada; leva de 1 a 3 minutos; aparecerá um holograma 'gerando...' no lugar" };
     }
@@ -170,11 +179,73 @@ public class GeradorModelo3D : MonoBehaviour
         Directory.CreateDirectory(pasta);
         string caminho = Path.Combine(pasta, NomeArquivo(nome) + "_" + DateTime.Now.Ticks + ".glb");
         File.WriteAllBytes(caminho, glb);
+        if (origem == "descricao") GuardarNoCache(nome, caminho);
         float tCarga = Time.time;
         var raiz = CriarRaizGlb(pos, rot, caminho, nome, tamanhoFinal, true);
         Debug.Log("GeradorModelo3D: [tempo] total até salvar " + (tCarga - inicio).ToString("0.0") + " s; carregamento glTFast começa agora");
         ocupado = false;
         voz?.Falar("o modelo 3D de " + nome + " ficou pronto depois de " + Mathf.RoundToInt(Time.time - inicio) + " segundos. Avise o usuário em uma frase curta e animada.");
+    }
+
+    // ------------------------------------------------------------------ cache de modelos gerados (só por descrição)
+    // Índice persistente "descrição normalizada → arquivo .glb" em Modelos3D/cache.json: pedir o mesmo objeto de novo reaproveita o arquivo.
+    static string ArquivoIndice => Path.Combine(Application.persistentDataPath, "Modelos3D", "cache.json");
+
+    // minúsculas, sem acentos nem pontuação, espaços colapsados: "Um Gato!" e "um  gato" dão a mesma chave
+    public static string ChaveCache(string descricao)
+    {
+        var d = (descricao ?? "").Normalize(NormalizationForm.FormD);
+        var sb = new StringBuilder();
+        bool espaco = false;
+        foreach (char c in d)
+        {
+            if (CharUnicodeInfo.GetUnicodeCategory(c) == UnicodeCategory.NonSpacingMark) continue;
+            if (char.IsLetterOrDigit(c)) { sb.Append(char.ToLowerInvariant(c)); espaco = false; }
+            else if (!espaco && sb.Length > 0) { sb.Append(' '); espaco = true; }
+        }
+        return sb.ToString().Trim();
+    }
+
+    static Dictionary<string, string> LerIndice()
+    {
+        try
+        {
+            if (File.Exists(ArquivoIndice))
+                return Newtonsoft.Json.JsonConvert.DeserializeObject<Dictionary<string, string>>(File.ReadAllText(ArquivoIndice)) ?? new Dictionary<string, string>();
+        }
+        catch (Exception e) { Debug.LogWarning("GeradorModelo3D: índice do cache ilegível, recomeçando: " + e.Message); }
+        return new Dictionary<string, string>();
+    }
+
+    public static bool TentarCache(string descricao, out string caminho)
+    {
+        caminho = null;
+        string chave = ChaveCache(descricao);
+        if (chave.Length == 0) return false;
+        var idx = LerIndice();
+        if (!idx.TryGetValue(chave, out var c)) return false;
+        if (!File.Exists(c)) { idx.Remove(chave); EscreverIndice(idx); return false; }   // arquivo sumiu: limpa a entrada
+        caminho = c;
+        return true;
+    }
+
+    public static void GuardarNoCache(string descricao, string caminho)
+    {
+        string chave = ChaveCache(descricao);
+        if (chave.Length == 0) return;
+        var idx = LerIndice();
+        idx[chave] = caminho;
+        EscreverIndice(idx);
+    }
+
+    static void EscreverIndice(Dictionary<string, string> idx)
+    {
+        try
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(ArquivoIndice));
+            File.WriteAllText(ArquivoIndice, Newtonsoft.Json.JsonConvert.SerializeObject(idx));
+        }
+        catch (Exception e) { Debug.LogWarning("GeradorModelo3D: não consegui gravar o cache: " + e.Message); }
     }
 
     // ------------------------------------------------------------------ falhas explicadas
