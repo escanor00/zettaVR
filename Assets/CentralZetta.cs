@@ -332,11 +332,13 @@ public class CentralZetta : MonoBehaviour
         txtDetalhe.text = det;
 
         string estado = "Em espera";
-        if (voz != null)
+        switch (EstadoZetta.Atual)
         {
-            if (voz.Falando) estado = "Falando...";
-            else if (voz.nivelMic > 0.04f && voz.estadoMic == "ouvindo") estado = "Ouvindo...";
-            else if (voz.acordada) estado = "Pronta";
+            case EstadoVoz.Falando: estado = "Falando..."; break;
+            case EstadoVoz.Ouvindo: estado = "Ouvindo..."; break;
+            case EstadoVoz.Pensando: estado = "Pensando..."; break;
+            case EstadoVoz.Erro: estado = "Erro"; break;
+            default: if (voz != null && voz.acordada) estado = "Pronta"; break;
         }
         txtMic.text = estado;
         vidroMic.DefinirBorda(estado == "Ouvindo..." ? TemaZetta.Ciano : TemaZetta.AzulTec, estado == "Em espera" ? 0.8f : 1.3f);

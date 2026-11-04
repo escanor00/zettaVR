@@ -7,6 +7,7 @@ public static class ZettaExtras
 {
     static readonly Type[] Modulos =
     {
+        typeof(EstadoZetta),
         typeof(FormasMatematicas),
         typeof(VistaExplodida),
         typeof(GraficoHolo),

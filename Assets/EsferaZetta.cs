@@ -65,7 +65,6 @@ public class EsferaZetta : MonoBehaviour
     // ---- estado ----
     float giro = 0.3f, brilho = 0.35f, contracao = 1f, pulso, rajada, volAnterior, erroAte = -1f, tempoEspiral;
     string ultimoErroVisto = "";
-    float ultimaVozUsuario = -99f;
     int quadros; float somaMs;
     System.Diagnostics.Stopwatch cron = new System.Diagnostics.Stopwatch();
 
@@ -282,11 +281,11 @@ public class EsferaZetta : MonoBehaviour
 
         // --- estado a partir da voz ---
         float alvoGiro, alvoBrilho, alvoContr = 1f, alvoPulso = 0f;
+        var est = EstadoZetta.Atual;
+        bool falando = est == EstadoVoz.Falando;
+        bool ouvindo = est == EstadoVoz.Ouvindo;
+        bool processando = est == EstadoVoz.Pensando;
         bool acordada = voz != null && voz.acordada;
-        bool falando = voz != null && (voz.Falando || voz.volumeSaida > 0.03f);
-        if (voz != null && voz.nivelMic > 0.04f && !falando) ultimaVozUsuario = tempo;
-        bool ouvindo = acordada && !falando && tempo - ultimaVozUsuario < 0.6f;
-        bool processando = acordada && !falando && !ouvindo && tempo - ultimaVozUsuario < 6f;
         if (!acordada && !falando) { alvoGiro = 0.35f; alvoBrilho = 0.7f; }
         else if (falando) { alvoGiro = 1.3f; alvoBrilho = 1f; alvoPulso = voz.volumeSaida; }
         else if (ouvindo) { alvoGiro = 0.9f; alvoBrilho = 1f; alvoContr = 0.72f; }

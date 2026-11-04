@@ -107,6 +107,7 @@ public partial class AssistenteVoz : MonoBehaviour
     BotaoHolo botaoParar;
     string statusMostrado;
     public bool Falando => falando;
+    public bool Processando => processando;
 
     // Para a fala atual: limpa o áudio já recebido e ignora o resto do turno.
     public void Interromper()
