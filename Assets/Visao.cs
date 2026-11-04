@@ -45,8 +45,11 @@ public class Visao : MonoBehaviour
         ocupado = true;
         byte[] foto = null;
         string erro = null;
+        // feixe de luz varrendo o que está sendo olhado (a foto sai antes do feixe aparecer, sem interferir nela)
+        var scan = GetComponent<EscaneamentoHolo>() ?? gameObject.AddComponent<EscaneamentoHolo>();
         yield return olhos.Capturar(b => foto = b, m => erro = m, ladoFoto, false);
         ocupado = false;
+        if (foto != null) yield return scan.Executar(1.5f);
         if (foto == null)
         {
             Debug.LogWarning("Visao: sem imagem: " + erro);

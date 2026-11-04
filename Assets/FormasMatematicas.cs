@@ -83,7 +83,6 @@ public class FormasMatematicas : MonoBehaviour
         InteracaoMaos.Aplicar(raiz);
 
         HoloRegistro.Adicionar(raiz, forma, corTxt ?? "ciano", NomeBonito(forma), "forma", tamanho, forma);
-        SonsZetta.Tocar(SonsZetta.Criar);
         return new JObject { ["result"] = NomeBonito(forma) + " criada" };
     }
 

@@ -179,7 +179,6 @@ public class GraficoHolo : MonoBehaviour
         raiz.AddComponent<XRGrabInteractable>();
         InteracaoMaos.Aplicar(raiz);
         HoloRegistro.Adicionar(raiz, "grafico", "", "gráfico: " + titulo, "grafico", 0.5f);
-        SonsZetta.Tocar(SonsZetta.Criar);
         atual = raiz;
         return raiz;
     }

@@ -10,6 +10,9 @@ public static class ZettaExtras
         typeof(FormasMatematicas),
         typeof(VistaExplodida),
         typeof(GraficoHolo),
+        typeof(BriefingBomDia),
+        typeof(ModoFoco),
+        typeof(SonsAmbiente),
     };
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
