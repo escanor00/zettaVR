@@ -184,7 +184,7 @@ public class DnaHolo : MonoBehaviour
     {
         var cam = Camera.main.transform;
         var mesa = FindAnyObjectByType<MesaHolografica>();
-        var pos = posMundo ?? (mesa != null && mesa.ativa ? mesa.Centro + Vector3.up * 0.3f : HoloUtil.PontoNaVista(new Vector3(0f, 0f, 0.85f)));
+        var pos = posMundo ?? (mesa != null && mesa.ativa ? mesa.Centro + Vector3.up * 0.3f : HoloUtil.PontoCriacao(0.5f, 0.85f));
         if (atual != null && posMundo == null) { HoloRegistro.Remover(atual); Destroy(atual); atual = null; }
 
         var raiz = new GameObject("DnaInfo_" + (++contador));

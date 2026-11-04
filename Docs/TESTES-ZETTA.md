@@ -1,6 +1,6 @@
 # Testes automáticos da Zetta
 
-Gerado por `Zetta > Rodar testes` em 2026-11-04 08:13.
+Gerado por `Zetta > Rodar testes` em 2026-11-04 09:37.
 
 - OK    — HoloRegistro: adicionar, buscar e remover
 - OK    — HoloRegistro: ids crescentes e eventos
@@ -21,6 +21,7 @@ Gerado por `Zetta > Rodar testes` em 2026-11-04 08:13.
 - OK    — Alertas: sistema pelo script da pilha
 - OK    — AssistenteVoz: classes parciais mantêm os métodos
 - OK    — Partes: malha dividida em 6 faces e cores relativas
-- OK    — Ferramentas registradas (requer Play) (ignorado fora do Play Mode)
+- OK    — Matemática: parser seguro (precedência, implícito, erros)
+- OK    — Ferramentas: todas registradas
 
-20/20 passaram.
+21/21 passaram.

@@ -15,6 +15,19 @@
 - Capturas: `Docs/capturas-redesign/r7-mobius-cientifico.png`, `r7-dna-referencia.png` (no Editor há um quadrado branco da cena de teste na frente; não é do app).
 - **Limites:** só Editor; custo no Quest não medido; o visual é inspirado na referência, não igual.
 
+## 4. Textos sem sobreposição e resposta em balão — feita (só Editor)
+- `RotulosLivres` (em `HoloUtil.cs`): cada rótulo reserva um retângulo na tela por quadro; os seguintes desviam (lados/cima/baixo) de outros rótulos, do corpo dos objetos (90%), da esfera + balão da Zetta e das bordas da visão. Aplicado aos rótulos do `EstiloCientifico` (nome, dados, "cálculo N%", painel "MODELO CONCLUÍDO"), que já têm linha de chamada presa ao objeto. Texto dos dados agora centralizado.
+- Resposta da Zetta: balão de vidro (`Balao`, 0,50 x 0,26 m) à esquerda da esfera, texto quebra linha e encolhe para caber, respostas longas mostram só o final ("…" no começo); o balão só aparece enquanto ela fala (ou até 8 s depois) e some nas mensagens de status ("Pode falar...").
+- **Limites:** só os rótulos do estilo científico usam `RotulosLivres`; etiquetas de partes, da sala, painéis de info/DNA e gráficos continuam com as posições antigas. Estimativas de tamanho em tela são aproximadas.
+
+## 5. Posição de criação — feita (só Editor)
+- `HoloUtil.PontoCriacao`: 0,8 m à frente seguindo o olhar na horizontal, altura dos olhos −2 cm (inclinação da cabeça só conta de 5° para cima a 12° para baixo), dentro da visão (confere o retângulo na tela); com a mesa ativa, sobre ela. Se já há objeto ali tenta 20°/−20°/35°/−35° e uma fileira acima. Usado em formas matemáticas, primitivas, modelos prontos, .glb (biblioteca/gerador/cache), gráficos, portal do clima, superfície/gráfico de funções, nota, DNA. Painéis (calculadora, resolução, código etc.) mantêm a posição antiga.
+- Gravidade: já nascia desligada (`SalaAR.solto=false`, `useGravity=false` em todos os criadores); só "Zetta, solte" liga. Nada mudou aqui.
+- No Editor os objetos às vezes derivam porque a cena de teste tem colisores (parede, quadrado branco); no Quest não há isso.
+
+## 6. Esfera — feita (só Editor)
+- Raio voltou a 0,3 (era 0,42 desde o commit `4c74b9d`) e foi para (0,50; −0,34) m a 1,2 m, mais perto do canto inferior direito (antes 0,36; −0,24). Status e balão seguem a posição dela.
+
 
 # 🌟 RESUMO FINAL — RODADA 6 (7 tarefas)
 **Estado:** T1–T7 feitas e commitadas localmente (`f280c1e`, `195faea`, `f605091`, `08070d9`). Console sem erros; 22/22 testes automáticos; build de conferência Android em `Builds/Android/Conferencia.apk` (**NÃO instalado** no Quest; nenhum push). Tudo conferido só no Editor; nada com mãos reais, TRELLIS real ou medição no Quest.

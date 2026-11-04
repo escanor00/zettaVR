@@ -21,6 +21,7 @@ public partial class AssistenteVoz
     void AtualizarStatusVisivel()
     {
         if (textoStatus == null) return;
+        AtualizarBalao();
         if (texto != null) texto.color = TemaZetta.Branco;   // resposta em #EAF6FF
         if (botaoParar != null && botaoParar.gameObject.activeSelf != falando) botaoParar.gameObject.SetActive(falando);
         string s;
@@ -54,14 +55,19 @@ public partial class AssistenteVoz
         alvoTexto = texto.rectTransform;
         texto.alignment = TextAlignmentOptions.Center;
         texto.color = new Color(0.2f, 0.9f, 1f);
-        texto.rectTransform.sizeDelta = new Vector2(LarguraTexto, 0.24f);
-        texto.alignment = TextAlignmentOptions.MidlineRight;
+        // balão de vidro de largura máxima fixa: o texto quebra linha e encolhe para caber; respostas longas mostram só o final
+        texto.rectTransform.sizeDelta = new Vector2(LarguraTexto - 0.06f, BalaoAltura - 0.05f);
+        texto.alignment = TextAlignmentOptions.MidlineLeft;
         texto.textWrappingMode = TextWrappingModes.Normal;
         texto.overflowMode = TextOverflowModes.Truncate;
         texto.enableAutoSizing = true;
-        texto.fontSizeMin = 0.18f;
-        texto.fontSizeMax = 0.6f;
+        texto.fontSizeMin = 0.14f;
+        texto.fontSizeMax = 0.5f;
+        texto.sortingOrder = TemaZetta.OrdemTexto;
         texto.text = "Iniciando...";
+        balao = HoloUtil.CriarPainel(alvoTexto, "Balao", new Vector2(LarguraTexto, BalaoAltura));
+        balao.localPosition = new Vector3(0f, 0f, -TemaZetta.ProfundidadeTexto);
+        balao.gameObject.SetActive(false);
 
         // rótulo de status pequeno embaixo do anel
         var existenteStatus = GameObject.Find("TextoStatus");
@@ -91,18 +97,37 @@ public partial class AssistenteVoz
         return cam.position + cam.forward * d + cam.right * x + cam.up * y;
     }
 
+    const float BalaoAltura = 0.26f;
+    Transform balao;
+
     Vector3 AlvoTexto(Transform cam)
     {
-        // ao lado (esquerda) do anel, na mesma altura
+        // balão ao lado (esquerda) da esfera, na altura dela: 0,16 m de folga do raio visual da esfera
         float x = 0f, y = -offsetAbaixo, d = distancia;
         if (anelRef != null)
         {
-            // acima da esfera, alinhado à direita (nunca sobre ela nem sobre a central)
-            x = anelRef.deslocamento.x + 0.2f - LarguraTexto * 0.5f;
-            y = anelRef.deslocamento.y + 0.33f;
+            x = anelRef.deslocamento.x - 0.16f - LarguraTexto * 0.5f;
+            y = anelRef.deslocamento.y - 0.03f;
             d = anelRef.distancia;
         }
         return cam.position + cam.forward * d + cam.right * x + cam.up * y;
+    }
+
+    // balão só enquanto há resposta (falando ou até 8 s depois); respostas longas mostram só o final
+    void AtualizarBalao()
+    {
+        if (balao == null || texto == null) return;
+        bool resposta = falando || Time.time - ultimaAtividade < 8f;
+        bool aviso = texto.text.StartsWith("Pode falar") || texto.text.StartsWith("Conectando") || texto.text.StartsWith("Iniciando") || texto.text.StartsWith("Reconectando");
+        bool mostrar = resposta && !aviso && texto.text.Length > 0;
+        if (balao.gameObject.activeSelf != mostrar) balao.gameObject.SetActive(mostrar);
+        const int maxChars = 170;
+        if (texto.text.Length > maxChars)
+        {
+            var t = texto.text.Substring(texto.text.Length - maxChars);
+            int corte = t.IndexOfAny(new[] { '.', '!', '?', ' ' });
+            texto.text = "…" + (corte >= 0 && corte < 60 ? t.Substring(corte + 1) : t).TrimStart();
+        }
     }
 
     void SeguirOlhar()

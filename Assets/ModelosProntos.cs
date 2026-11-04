@@ -72,7 +72,7 @@ public class ModelosProntos : MonoBehaviour
         string nome = (args.Value<string>("modelo") ?? "").ToLowerInvariant();
         var raiz = new GameObject("Modelo_" + nome);
         raiz.transform.SetParent(transform, true);
-        var pos = posMundo ?? HoloUtil.PontoNaVista(posicaoVista);
+        var pos = posMundo ?? HoloUtil.PontoCriacao(0.3f);
         raiz.transform.position = pos;
         raiz.transform.rotation = rotMundo ?? Quaternion.Euler(0f, Camera.main.transform.eulerAngles.y, 0f);
 

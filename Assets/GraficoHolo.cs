@@ -127,7 +127,7 @@ public class GraficoHolo : MonoBehaviour
         if (atual != null) { HoloRegistro.Remover(atual); Destroy(atual); }
 
         var mesa = FindAnyObjectByType<MesaHolografica>();
-        Vector3 pos = mesa != null && mesa.ativa ? mesa.Centro + Vector3.up * 0.03f : HoloUtil.PontoNaVista(posicaoVista);
+        Vector3 pos = HoloUtil.PontoCriacao(0.4f);
         var raiz = new GameObject("Grafico_" + titulo);
         raiz.transform.SetParent(transform, true);
         raiz.transform.position = pos;

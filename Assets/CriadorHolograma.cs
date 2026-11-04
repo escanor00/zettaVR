@@ -94,7 +94,7 @@ public class CriadorHolograma : MonoBehaviour
         var local = new Vector3(0f, -0.05f, 0.6f);
         if (args["posicao"] is JObject p)
             local = new Vector3(p.Value<float?>("x") ?? 0f, p.Value<float?>("y") ?? -0.05f, p.Value<float?>("z") ?? 0.6f);
-        var pos = posMundo ?? (cam.position + Quaternion.Euler(0f, cam.eulerAngles.y, 0f) * local);
+        var pos = posMundo ?? (args["posicao"] is JObject ? cam.position + Quaternion.Euler(0f, cam.eulerAngles.y, 0f) * local : HoloUtil.PontoCriacao(tamanho));
 
         // objeto = raiz + uma parte (filho com malha própria) por face/região: tudo pintável e separável
         var go = new GameObject("Holograma_" + forma + "_" + (++contador));

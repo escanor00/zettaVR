@@ -239,7 +239,7 @@ public static class TestesZetta
                 var campo = typeof(AssistenteVoz).GetField("ferramentas", BindingFlags.Instance | BindingFlags.NonPublic);
                 var dic = campo != null ? campo.GetValue(voz) as System.Collections.IDictionary : null;
                 if (dic == null) return "dicionário de ferramentas não encontrado";
-                foreach (var n in new[] { "criar_forma_matematica", "vista_explodida", "criar_grafico", "bom_dia", "modo_foco", "linha_do_tempo", "etiquetas_sala", "portal_clima", "apresentar_modelo", "abrir_central", "fechar_central", "pintar_parte", "partes_objeto", "visibilidade_parte", "girar_objeto", "acao_objeto", "mostrar_dna", "desenhar_superficie", "grafico_funcoes", "resolver_passo_a_passo", "calcular", "calculadora_holografica", "geometria_interativa", "modo_estrutura" })
+                foreach (var n in new[] { "criar_forma_matematica", "vista_explodida", "criar_grafico", "bom_dia", "modo_foco", "linha_do_tempo", "etiquetas_sala", "portal_clima", "apresentar_modelo", "abrir_central", "fechar_central", "pintar_parte", "partes_objeto", "visibilidade_parte", "girar_objeto", "acao_objeto", "mostrar_dna", "desenhar_superficie", "grafico_funcoes", "resolver_passo_a_passo", "calcular", "calculadora_holografica", "geometria_interativa", "modo_estrutura", "modo_solido" })
                     if (!dic.Contains(n)) return "não registrada: " + n;
                 return dic.Count >= 30 ? null : "só " + dic.Count + " ferramentas";
             });

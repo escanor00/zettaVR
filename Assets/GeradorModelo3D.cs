@@ -69,7 +69,7 @@ public class GeradorModelo3D : MonoBehaviour
         if (origem == "descricao" && string.IsNullOrWhiteSpace(desc)) return new JObject { ["erro"] = "faltou a descrição do objeto" };
         if (origem == "descricao" && TentarCache(desc, out var emCache))
         {
-            var posC = HoloUtil.PontoNaVista(new Vector3(0, 0, 0.8f));
+            var posC = HoloUtil.PontoCriacao(tamanhoFinal);
             CriarRaizGlb(posC, HoloUtil.OlharParaUsuario(posC), emCache, desc.Trim(), tamanhoFinal, true);
             return new JObject { ["result"] = "esse modelo já estava guardado; apareceu na hora, sem gerar de novo" };
         }
@@ -444,7 +444,7 @@ public class GeradorModelo3D : MonoBehaviour
     {
         Vector3 pos;
         var mesa = FindAnyObjectByType<MesaHolografica>();
-        pos = (mesa != null && mesa.ativa) ? mesa.Centro + Vector3.up * 0.22f : HoloUtil.PontoNaVista(new Vector3(0f, -0.05f, 0.8f));
+        pos = HoloUtil.PontoCriacao(0.3f);
         var go = GameObject.CreatePrimitive(PrimitiveType.Cube);
         go.name = "Gerando3D";
         Destroy(go.GetComponent<Collider>());

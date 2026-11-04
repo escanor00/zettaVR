@@ -66,7 +66,7 @@ public class FormasMatematicas : MonoBehaviour
 
         var raiz = new GameObject("Forma_" + forma + "_" + (++contador));
         raiz.transform.SetParent(transform, true);
-        raiz.transform.position = posMundo ?? HoloUtil.PontoNaVista(posicaoVista);
+        raiz.transform.position = posMundo ?? HoloUtil.PontoCriacao(tamanho);
         raiz.transform.rotation = rotMundo ?? Quaternion.Euler(0f, Camera.main.transform.eulerAngles.y, 0f);
         raiz.transform.localScale = Vector3.one * tamanho;
 

@@ -212,7 +212,7 @@ public class SuperficieHolo : MonoBehaviour
 
         var cam = Camera.main.transform;
         var mesa = FindAnyObjectByType<MesaHolografica>();
-        var pos = posMundo ?? (mesa != null && mesa.ativa ? mesa.Centro + Vector3.up * 0.2f : HoloUtil.PontoNaVista(new Vector3(0f, -0.05f, 0.75f)));
+        var pos = posMundo ?? HoloUtil.PontoCriacao(0.4f);
         var raiz = new GameObject("Superficie_" + (++contador));
         raiz.transform.SetParent(transform, true);
         raiz.transform.SetPositionAndRotation(pos, rotMundo ?? Quaternion.Euler(0f, cam.eulerAngles.y, 0f));
@@ -378,7 +378,7 @@ public class GraficoFuncoes : MonoBehaviour
         }
 
         var cam = Camera.main.transform;
-        var pos = posMundo ?? HoloUtil.PontoNaVista(new Vector3(0f, 0.02f, 0.85f));
+        var pos = posMundo ?? HoloUtil.PontoCriacao(0.4f);
         var raiz = new GameObject("GraficoFn_" + (++contador));
         raiz.transform.SetParent(transform, true);
         raiz.transform.SetPositionAndRotation(pos, rotMundo ?? Quaternion.Euler(0f, cam.eulerAngles.y, 0f));

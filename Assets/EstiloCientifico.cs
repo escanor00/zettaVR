@@ -357,7 +357,7 @@ public class EstiloCientifico : MonoBehaviour
         var altura = ExtensaoRaiz();
         txtNome = HoloUtil.CriarTexto(rotulos, "Nome", info.nome, new Vector3(0f, altura.y * 0.5f + 0.06f, 0f), new Vector2(0.5f, 0.045f), 0.3f, TemaZetta.Branco);
         txtNome.fontStyle = FontStyles.Bold;
-        txtParam = HoloUtil.CriarTexto(rotulos, "Parametros", string.Join("\n", info.parametros), new Vector3(altura.x * 0.5f + 0.2f, 0f, 0f), new Vector2(0.36f, 0.1f), 0.2f, TemaZetta.Ciano, TextAlignmentOptions.Left);
+        txtParam = HoloUtil.CriarTexto(rotulos, "Parametros", string.Join("\n", info.parametros), new Vector3(altura.x * 0.5f + 0.2f, 0f, 0f), new Vector2(0.36f, 0.1f), 0.2f, TemaZetta.Ciano, TextAlignmentOptions.Center);
         txtParam.textWrappingMode = TextWrappingModes.Normal;
         txtPct = HoloUtil.CriarTexto(rotulos, "Calculo", "calculando 0%", new Vector3(0f, -altura.y * 0.5f - 0.05f, 0f), new Vector2(0.4f, 0.03f), 0.22f, TemaZetta.ComAlfa(Verde, 1f));
 
@@ -407,10 +407,14 @@ public class EstiloCientifico : MonoBehaviour
         Vector3 c = bounds.center;
         var olhar = Quaternion.LookRotation(rotulos.position - cam.transform.position, Vector3.up);
 
-        Posicionar(txtNome.transform, c + Vector3.up * (bounds.extents.y + 0.07f), olhar);
         var direita = cam.transform.right; direita.y = 0f; direita.Normalize();
-        Posicionar(txtParam.transform, c + direita * (bounds.extents.magnitude * 0.75f + 0.2f), olhar);
-        Posicionar(txtPct.transform, c - Vector3.up * (bounds.extents.y + 0.06f), olhar);
+        // cada rótulo reserva seu retângulo na tela: não sobrepõe outro texto, a esfera/balão, nem sai da visão
+        var posNome = c + Vector3.up * (bounds.extents.y + 0.07f);
+        var posParam = c + direita * (bounds.extents.magnitude * 0.75f + 0.2f);
+        var posPct = c - Vector3.up * (bounds.extents.y + 0.06f);
+        Posicionar(txtNome.transform, RotulosLivres.Resolver(cam, posNome, RotulosLivres.TamanhoNaTela(cam, txtNome), gameObject), olhar);
+        Posicionar(txtParam.transform, RotulosLivres.Resolver(cam, posParam, RotulosLivres.TamanhoNaTela(cam, txtParam), gameObject), olhar);
+        Posicionar(txtPct.transform, RotulosLivres.Resolver(cam, posPct, RotulosLivres.TamanhoNaTela(cam, txtPct), gameObject), olhar);
 
         // marcadores: três pontos da caixa visível, ligados por linha ao rótulo mais próximo
         var alvos = new[] { txtNome.transform.position, txtParam.transform.position - direita * 0.12f, txtPct.transform.position };
@@ -434,7 +438,7 @@ public class EstiloCientifico : MonoBehaviour
 
         if (painelConcluido != null)
         {
-            painelConcluido.position = c + (-direita) * (bounds.extents.magnitude * 0.75f + 0.22f) + Vector3.up * 0.02f;
+            painelConcluido.position = RotulosLivres.Resolver(cam, c + (-direita) * (bounds.extents.magnitude * 0.75f + 0.22f) + Vector3.up * 0.02f, new Vector2(0.2f, 0.12f), gameObject);
             painelConcluido.rotation = olhar;
             painelConcluido.localScale = Vector3.one * painelEscala;
         }

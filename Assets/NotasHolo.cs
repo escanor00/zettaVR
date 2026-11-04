@@ -101,7 +101,7 @@ public class NotasHolo : MonoBehaviour
         string texto = (args.Value<string>("texto") ?? "").Trim();
         if (texto.Length == 0) return new JObject { ["erro"] = "texto da nota vazio" };
         if (texto.Length > maxCaracteres) texto = texto.Substring(0, maxCaracteres).TrimEnd() + "…";
-        var pos = HoloUtil.PontoNaVista(posicaoVista);
+        var pos = HoloUtil.PontoCriacao(0.2f, 0.7f);
         var go = CriarCartao(new Dados { texto = texto }, pos, HoloUtil.OlharParaUsuario(pos));
         if (go == null) return new JObject { ["erro"] = "não consegui criar a nota" };
         return new JObject { ["result"] = "nota criada: " + texto };

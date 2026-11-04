@@ -329,7 +329,7 @@ public class PortalClima : MonoBehaviour
         Fechar();
         tipo = Tipo(codigo);
         var mesa = FindAnyObjectByType<MesaHolografica>();
-        Vector3 pos = mesa != null && mesa.ativa ? mesa.Centro + Vector3.up * 0.22f : HoloUtil.PontoNaVista(new Vector3(0f, -0.02f, 0.75f));
+        Vector3 pos = HoloUtil.PontoCriacao(0.4f);
         globo = new GameObject("PortalClima").transform;
         globo.SetParent(transform, false);
         globo.position = pos;

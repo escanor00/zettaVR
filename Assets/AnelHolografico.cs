@@ -5,9 +5,9 @@ public class AnelHolografico : MonoBehaviour
     public Color cor = new Color(0.2f, 0.9f, 1f, 0.8f);
     public float distancia = 1.2f;
     // canto inferior direito da visão (direita, cima), em metros a 'distancia'
-    public Vector2 deslocamento = new Vector2(0.36f, -0.24f);
+    public Vector2 deslocamento = new Vector2(0.5f, -0.34f);
     public float escala = 0.4f;
-    public float raioEsfera = 0.42f;   // raio da esfera (x escala = ~12 cm)
+    public float raioEsfera = 0.3f;   // raio da esfera (x escala = ~12 cm)
 
     Transform[] aneis;
     float[] velocidades = { 20f, -35f, 50f, -15f };

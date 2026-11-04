@@ -70,7 +70,7 @@ public class BibliotecaModelos : MonoBehaviour
 
         var gerador = FindAnyObjectByType<GeradorModelo3D>();
         if (gerador == null) return new JObject { ["erro"] = "carregador de modelos indisponível" };
-        var pos = HoloUtil.PontoNaVista(new Vector3(0f, -0.1f, 0.8f));
+        var pos = HoloUtil.PontoCriacao(gerador.tamanhoFinal);
         gerador.CriarRaizGlb(pos, HoloUtil.OlharParaUsuario(pos), escolhido.Value.caminho, escolhido.Value.nome, gerador.tamanhoFinal);
         return new JObject { ["result"] = "mostrando " + escolhido.Value.nome };
     }
