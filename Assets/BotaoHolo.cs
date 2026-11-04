@@ -121,6 +121,9 @@ public class BotaoHolo : MonoBehaviour
         zMax = Mathf.Max(zMax, l.z);
     }
 
+    // para outros módulos que precisam do dedo (rolagem do visualizador de código)
+    public static XRHandSubsystem MaosAtivas() { return ObterSubsistema() ? sub : null; }
+
     static bool ObterSubsistema()
     {
         if (sub != null && sub.running) return true;

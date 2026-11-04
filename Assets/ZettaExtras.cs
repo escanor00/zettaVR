@@ -9,6 +9,7 @@ public static class ZettaExtras
     {
         typeof(EstadoZetta),
         typeof(DesempenhoHolo),
+        typeof(CodigoHolo),
         typeof(FormasMatematicas),
         typeof(VistaExplodida),
         typeof(GraficoHolo),
