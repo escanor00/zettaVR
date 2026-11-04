@@ -197,6 +197,26 @@ public static class TestesZetta
             return null;
         });
 
+        T("Partes: malha dividida em 6 faces e cores relativas", () =>
+        {
+            var tmp = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            var malha = tmp.GetComponent<MeshFilter>().sharedMesh;
+            UnityEngine.Object.DestroyImmediate(tmp);
+            var p = MalhaPartes.Dividir(malha, new[] { "a", "b", "c", "d", "e", "f" }, (c, n, v) =>
+            {
+                float ax = Mathf.Abs(n.x), ay = Mathf.Abs(n.y), az = Mathf.Abs(n.z);
+                if (az >= ax && az >= ay) return n.z > 0 ? 0 : 1;
+                return ax >= ay ? (n.x > 0 ? 2 : 3) : (n.y > 0 ? 4 : 5);
+            });
+            if (p.Count != 6) return "faces = " + p.Count;
+            foreach (var x in p) if (x.malha.triangles.Length != 6) return "face sem 2 triângulos";
+            var claro = CriadorHolograma.CorDeEdicao("mais claro", new Color(0.2f, 0.2f, 0.8f));
+            var escuro = CriadorHolograma.CorDeEdicao("azul mais escuro", Color.red);
+            if (claro.r <= 0.2f) return "mais claro não clareou";
+            if (escuro.b >= 0.9f) return "azul mais escuro não escureceu";
+            return CriadorHolograma.TentarCor("vermelhas", out _) ? null : "plural/feminino de cor";
+        });
+
         if (EditorApplication.isPlaying)
         {
             T("Ferramentas: todas registradas", () =>
@@ -206,7 +226,7 @@ public static class TestesZetta
                 var campo = typeof(AssistenteVoz).GetField("ferramentas", BindingFlags.Instance | BindingFlags.NonPublic);
                 var dic = campo != null ? campo.GetValue(voz) as System.Collections.IDictionary : null;
                 if (dic == null) return "dicionário de ferramentas não encontrado";
-                foreach (var n in new[] { "criar_forma_matematica", "vista_explodida", "criar_grafico", "bom_dia", "modo_foco", "linha_do_tempo", "etiquetas_sala", "portal_clima", "apresentar_modelo", "abrir_central", "fechar_central" })
+                foreach (var n in new[] { "criar_forma_matematica", "vista_explodida", "criar_grafico", "bom_dia", "modo_foco", "linha_do_tempo", "etiquetas_sala", "portal_clima", "apresentar_modelo", "abrir_central", "fechar_central", "pintar_parte", "partes_objeto", "visibilidade_parte", "girar_objeto", "acao_objeto" })
                     if (!dic.Contains(n)) return "não registrada: " + n;
                 return dic.Count >= 30 ? null : "só " + dic.Count + " ferramentas";
             });

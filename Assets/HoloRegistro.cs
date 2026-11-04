@@ -13,6 +13,7 @@ public class HoloItem
     public string tipo = "primitiva"; // primitiva | modelo | glb
     public float tamanho = 0.15f;
     public string extra = "";          // nome do modelo ou caminho do .glb
+    public string estado = "";         // estado das partes (ObjetoInterativo.Serializar), salvo com a âncora
 }
 
 // Registro central dos hologramas criados (usado por apagar, âncoras, física, mesa, etc.).

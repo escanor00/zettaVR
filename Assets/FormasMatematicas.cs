@@ -35,14 +35,14 @@ public class FormasMatematicas : MonoBehaviour
     {
         AncorasHolo.Fabricas["forma"] = (item, pos, rot) =>
         {
-            Criar(new JObject { ["forma"] = item.extra, ["cor"] = item.cor, ["tamanho"] = item.tamanho }, pos, rot);
+            Criar(new JObject { ["forma"] = item.extra, ["cor"] = item.cor, ["tamanho"] = item.tamanho }, pos, rot, item.estado);
             return HoloRegistro.Itens.Count > 0 ? HoloRegistro.Itens[HoloRegistro.Itens.Count - 1].go : null;
         };
         var voz = FindAnyObjectByType<AssistenteVoz>();
         if (voz != null) voz.RegistrarFerramenta(Decl, a => Criar(a), Instrucao);
     }
 
-    public JObject Criar(JObject args, Vector3? posMundo = null, Quaternion? rotMundo = null)
+    public JObject Criar(JObject args, Vector3? posMundo = null, Quaternion? rotMundo = null, string estadoSalvo = null)
     {
         string forma = ApagadorHolo.Normalizar(args.Value<string>("forma") ?? "").Replace(' ', '_').Replace("-", "_");
         if (forma.Contains("mobius")) forma = "mobius";
@@ -67,9 +67,34 @@ public class FormasMatematicas : MonoBehaviour
         // a malha gira num filho; a raiz (com colisor e pegada) fica parada
         var corpo = new GameObject("Corpo");
         corpo.transform.SetParent(raiz.transform, false);
-        corpo.AddComponent<MeshFilter>().sharedMesh = malha;
-        corpo.AddComponent<MeshRenderer>();
-        CriadorHolograma.AplicarVisual(corpo, cor, new Vector2(1f, 1f), 1.2f, null, 0.22f);
+        // partes: DNA = fita A, fita B e degraus; as outras formas, 3 regiões ao longo do maior eixo
+        var oi = raiz.AddComponent<ObjetoInterativo>();
+        var pedacos = forma == "dna"
+            ? MalhaPartes.Dividir(malha, new[] { "fita A", "fita B", "degraus" }, (c, n, i) => i < dnaFimA ? 0 : (i < dnaFimB ? 1 : 2))
+            : MalhaPartes.Regioes(malha);
+        if (forma == "dna")
+        {
+            oi.grupos["pares"] = new[] { "degraus" };
+            oi.grupos["bases"] = new[] { "degraus" };
+            oi.grupos["fitas"] = new[] { "fita A", "fita B" };
+            oi.grupos["fita"] = new[] { "fita A", "fita B" };
+            oi.acoesExtra = new[] { "desenrolar", "enrolar", "voltas" };
+            oi.extras["voltas"] = VoltasPadrao;
+            oi.extras["desenrolo"] = 0f;
+            oi.acaoExtra = (acao, valor) => AcaoDna(oi, corpo.transform, acao, valor);
+        }
+        foreach (var pd in pedacos)
+        {
+            var parte = new GameObject(pd.nome);
+            parte.transform.SetParent(corpo.transform, false);
+            parte.AddComponent<MeshFilter>().sharedMesh = pd.malha;
+            parte.AddComponent<MeshRenderer>();
+            CriadorHolograma.AplicarVisual(parte, cor, new Vector2(1f, 1f), 1.2f, null, 0.22f, malha.bounds);
+            var ph = parte.AddComponent<ParteHolo>();
+            ph.nome = pd.nome;
+            ph.origem = pd.origem;
+            oi.AdicionarParte(ph);
+        }
         var g = corpo.AddComponent<Girar>();
         g.eixo = Vector3.up;
         g.grausPorSegundo = 24f;
@@ -83,6 +108,7 @@ public class FormasMatematicas : MonoBehaviour
         InteracaoMaos.Aplicar(raiz);
 
         HoloRegistro.Adicionar(raiz, forma, corTxt ?? "ciano", NomeBonito(forma), "forma", tamanho, forma);
+        if (!string.IsNullOrEmpty(estadoSalvo)) oi.AplicarEstado(estadoSalvo);
         return new JObject { ["result"] = NomeBonito(forma) + " criada" };
     }
 
@@ -100,7 +126,82 @@ public class FormasMatematicas : MonoBehaviour
     }
 
     // ---------- malhas (normalizadas para caber numa caixa de 1 m, centradas) ----------
-    public static Mesh Gerar(string forma)
+    public const float VoltasPadrao = 2.5f;
+    static int dnaFimA, dnaFimB;   // fim (em vértices) da fita A e da fita B na malha do DNA
+
+    // ações do DNA: desenrolar/enrolar (anima a torção até a escada reta) e voltas (número de voltas da hélice)
+    string AcaoDna(ObjetoInterativo oi, Transform corpo, string acao, float valor)
+    {
+        acao = (acao ?? "").ToLowerInvariant();
+        if (acao.StartsWith("direto:"))   // estado restaurado da âncora: sem animação
+        {
+            oi.extras[acao.Substring(7)] = valor;
+            AtualizarMalhaDna(oi, corpo);
+            return null;
+        }
+        if (acao.StartsWith("desenrol")) { IniciarDna(oi, corpo, null, 1f); return "DNA desenrolando"; }
+        if (acao.StartsWith("enrol")) { IniciarDna(oi, corpo, null, 0f); return "DNA enrolando"; }
+        if (acao.StartsWith("volta") || acao.StartsWith("desenrolo"))
+        {
+            if (acao.StartsWith("desenrolo")) { oi.extras["desenrolo"] = Mathf.Clamp01(valor); AtualizarMalhaDna(oi, corpo); return null; }
+            float v = Mathf.Clamp(valor, 0.5f, 8f);
+            IniciarDna(oi, corpo, v, null);
+            return "DNA com " + v.ToString("0.#") + " voltas";
+        }
+        return null;
+    }
+
+    readonly Dictionary<ObjetoInterativo, Coroutine> animDna = new Dictionary<ObjetoInterativo, Coroutine>();
+
+    void IniciarDna(ObjetoInterativo oi, Transform corpo, float? voltas, float? desenrolo)
+    {
+        if (animDna.TryGetValue(oi, out var c) && c != null) StopCoroutine(c);
+        animDna[oi] = StartCoroutine(AnimarDna(oi, corpo, voltas, desenrolo));
+    }
+
+    System.Collections.IEnumerator AnimarDna(ObjetoInterativo oi, Transform corpo, float? voltas, float? desenrolo)
+    {
+        float v0 = oi.extras["voltas"], d0 = oi.extras["desenrolo"];
+        float v1 = voltas ?? v0, d1 = desenrolo ?? d0;
+        const float dur = 1.2f;
+        for (float t = 0; t < dur && oi != null; t += Time.deltaTime)
+        {
+            float x = Mathf.SmoothStep(0f, 1f, t / dur);
+            oi.extras["voltas"] = Mathf.Lerp(v0, v1, x);
+            oi.extras["desenrolo"] = Mathf.Lerp(d0, d1, x);
+            AtualizarMalhaDna(oi, corpo);
+            yield return null;
+        }
+        if (oi == null) yield break;
+        oi.extras["voltas"] = v1; oi.extras["desenrolo"] = d1;
+        AtualizarMalhaDna(oi, corpo);
+    }
+
+    // mesma topologia, vértices novos: reescreve a posição nas malhas de grade e de preenchimento de cada parte
+    static void AtualizarMalhaDna(ObjetoInterativo oi, Transform corpo)
+    {
+        var nova = Gerar("dna", oi.extras["voltas"], oi.extras["desenrolo"]).vertices;
+        foreach (var p in oi.partes)
+        {
+            if (p == null || p.origem == null) continue;
+            var pos = new Vector3[p.origem.Length];
+            for (int i = 0; i < pos.Length; i++) pos[i] = nova[p.origem[i]];
+            Atualizar(p.GetComponent<MeshFilter>(), pos);
+            var f = p.transform.Find("Preenchimento");
+            if (f != null) Atualizar(f.GetComponent<MeshFilter>(), pos);
+        }
+    }
+
+    static void Atualizar(MeshFilter mf, Vector3[] pos)
+    {
+        if (mf == null || mf.sharedMesh == null) return;
+        var m = mf.sharedMesh;
+        m.vertices = pos;
+        m.RecalculateNormals();
+        m.RecalculateBounds();
+    }
+
+    public static Mesh Gerar(string forma, float voltas = VoltasPadrao, float desenrolo = 0f)
     {
         Mesh m;
         switch (forma)
@@ -129,7 +230,7 @@ public class FormasMatematicas : MonoBehaviour
                 float r = Mathf.Cos(q * a) + 2f;
                 return new Vector3(r * Mathf.Cos(p * a), -Mathf.Sin(q * a), r * Mathf.Sin(p * a));
             }), 0.28f, 12, true); break;
-            case "dna": m = Dna(); break;
+            case "dna": m = Dna(voltas, desenrolo); break;
             case "fractal": m = Sierpinski(3); break;
             default: return null;
         }
@@ -218,21 +319,23 @@ public class FormasMatematicas : MonoBehaviour
             }
     }
 
-    static Mesh Dna()
+    static Mesh Dna(float voltas, float desenrolo)
     {
         var v = new List<Vector3>(); var uv = new List<Vector2>(); var t = new List<int>();
         const int n = 120;
-        const float voltas = 2.5f, altura = 3f, raioH = 0.6f;
+        const float altura = 3f, raioH = 0.6f;
         var fitaA = new List<Vector3>(); var fitaB = new List<Vector3>();
         for (int i = 0; i < n; i++)
         {
-            float f = i / (float)(n - 1), a = f * voltas * Mathf.PI * 2f;
+            float f = i / (float)(n - 1), a = f * voltas * Mathf.PI * 2f * (1f - desenrolo);
             float y = (f - 0.5f) * altura;
             fitaA.Add(new Vector3(Mathf.Cos(a) * raioH, y, Mathf.Sin(a) * raioH));
             fitaB.Add(new Vector3(Mathf.Cos(a + Mathf.PI) * raioH, y, Mathf.Sin(a + Mathf.PI) * raioH));
         }
         AdicionarTubo(v, uv, t, fitaA, 0.07f, 8, false, 10f);
+        dnaFimA = v.Count;
         AdicionarTubo(v, uv, t, fitaB, 0.07f, 8, false, 10f);
+        dnaFimB = v.Count;
         for (int i = 4; i < n - 4; i += 5)   // degraus entre as fitas
             AdicionarTubo(v, uv, t, new List<Vector3> { fitaA[i], Vector3.Lerp(fitaA[i], fitaB[i], 0.5f), fitaB[i] }, 0.035f, 6, false, 2f);
         return Montar(v, uv, t);

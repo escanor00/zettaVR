@@ -324,6 +324,8 @@ public class NotaCartao : MonoBehaviour
         if (grab != null) grab.selectExited.RemoveListener(AoSoltar);
     }
 
+    public void DefinirCor(string cor) { dados.cor = cor; Aplicar(true); }
+
     public float MaiorLado() => Mathf.Max(largura, altura);
 
     // layout: letra com o tamanho aparente dos painéis; o cartão cresce em altura (até o máximo) em vez de encolher o texto

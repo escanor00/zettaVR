@@ -16,7 +16,7 @@ public class VistaExplodida : MonoBehaviour
   ""parameters"": {
     ""type"": ""OBJECT"",
     ""properties"": {
-      ""acao"": { ""type"": ""STRING"", ""enum"": [""abrir"", ""fechar""] },
+      ""acao"": { ""type"": ""STRING"", ""enum"": [""abrir"", ""fechar""], ""description"": ""abrir = separar/abrir; fechar = juntar/montar de novo."" },
       ""id"": { ""type"": ""INTEGER"", ""description"": ""Id do objeto (opcional; sem ele usa o que o usuário olha)."" }
     },
     ""required"": [""acao""]
@@ -48,8 +48,17 @@ public class VistaExplodida : MonoBehaviour
         if (item == null) item = HoloAlvo.ObjetoOlhado();
         if (item == null || item.go == null) return new JObject { ["erro"] = "não sei qual objeto; peça para o usuário olhar ou apontar para ele" };
 
+        bool abrir = acao.StartsWith("a") || acao == "explodir" || acao.StartsWith("sep");
+        // sistema de partes (ObjetoInterativo): peças pegáveis uma a uma enquanto abertas
+        var oi = ObjetoInterativo.Garantir(item.go);
+        if (oi.partes.FindAll(p => !p.oculta).Count >= 2)
+        {
+            if (abrir == oi.explodido) return new JObject { ["result"] = abrir ? "já está aberto" : "já está montado" };
+            oi.Explodir(abrir);
+            SonsZetta.Tocar(abrir ? SonsZetta.Abrir : SonsZetta.Fechar);
+            return new JObject { ["result"] = abrir ? "vista explodida aberta; as peças podem ser pegas uma a uma (partes: " + string.Join(", ", oi.Nomes()) + ")" : "modelo montado de novo" };
+        }
         if (!estados.TryGetValue(item.go, out var e)) { e = new Estado(); estados[item.go] = e; }
-        bool abrir = acao.StartsWith("a") || acao == "explodir";
         if (abrir == e.explodido) return new JObject { ["result"] = abrir ? "já está aberto" : "já está montado" };
 
         if (abrir)

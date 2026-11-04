@@ -17,6 +17,7 @@ public static class ZettaExtras
         typeof(PonteHolo),
         typeof(FormasMatematicas),
         typeof(VistaExplodida),
+        typeof(FerramentasPartes),
         typeof(GraficoHolo),
         typeof(BriefingBomDia),
         typeof(ModoFoco),

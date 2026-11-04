@@ -60,14 +60,14 @@ public class ModelosProntos : MonoBehaviour
     {
         AncorasHolo.Fabricas["modelo"] = (item, pos, rot) =>
         {
-            Mostrar(new JObject { ["modelo"] = item.extra }, pos, rot);
+            Mostrar(new JObject { ["modelo"] = item.extra }, pos, rot, item.estado);
             return HoloRegistro.Itens.Count > 0 ? HoloRegistro.Itens[HoloRegistro.Itens.Count - 1].go : null;
         };
         var voz = FindAnyObjectByType<AssistenteVoz>();
         if (voz != null) voz.RegistrarFerramenta(Decl, a => Mostrar(a), Instrucao);
     }
 
-    public JObject Mostrar(JObject args, Vector3? posMundo = null, Quaternion? rotMundo = null)
+    public JObject Mostrar(JObject args, Vector3? posMundo = null, Quaternion? rotMundo = null, string estadoSalvo = null)
     {
         string nome = (args.Value<string>("modelo") ?? "").ToLowerInvariant();
         var raiz = new GameObject("Modelo_" + nome);
@@ -96,6 +96,8 @@ public class ModelosProntos : MonoBehaviour
         InteracaoMaos.Aplicar(raiz);
 
         HoloRegistro.Adicionar(raiz, nome, "", nome.Replace('_', ' '), "modelo", 0.5f, nome);
+        raiz.AddComponent<ObjetoInterativo>().Descobrir();   // cada peça nomeada (Sol, planetas, Oxigenio...) vira uma parte
+        if (!string.IsNullOrEmpty(estadoSalvo)) raiz.GetComponent<ObjetoInterativo>().AplicarEstado(estadoSalvo);
         modelos.Add(raiz);
         while (modelos.Count > maxModelos)
         {

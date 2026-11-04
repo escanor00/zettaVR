@@ -73,6 +73,39 @@ public class DesenhoNoAr : MonoBehaviour
             }
     }
 
+    // editar_objeto em desenhos: cor (todos os traços e os próximos), mover e escalar o conjunto
+    public void Tingir(Color c)
+    {
+        matLinha.color = new Color(c.r, c.g, c.b, 1f);
+        matBrilho.color = new Color(c.r, c.g, c.b, 0.22f);
+    }
+
+    public Color CorAtual => matLinha != null ? matLinha.color : Color.cyan;
+
+    public void Transformar(Vector3 deslocamento, float fator)
+    {
+        tracos.RemoveAll(t => t == null);
+        var soma = Vector3.zero; int n = 0;
+        var linhas = new List<LineRenderer>();
+        foreach (var t in tracos)
+            foreach (var lr in t.GetComponentsInChildren<LineRenderer>())
+            {
+                linhas.Add(lr);
+                if (lr.name != "Nucleo") continue;
+                var pts = new Vector3[lr.positionCount]; lr.GetPositions(pts);
+                foreach (var p in pts) { soma += p; n++; }
+            }
+        if (n == 0) return;
+        var centro = soma / n;
+        foreach (var lr in linhas)
+        {
+            var pts = new Vector3[lr.positionCount]; lr.GetPositions(pts);
+            for (int i = 0; i < pts.Length; i++) pts[i] = centro + (pts[i] - centro) * fator + deslocamento;
+            lr.SetPositions(pts);
+            lr.widthMultiplier *= fator;
+        }
+    }
+
     public void Apagar()
     {
         foreach (var m in maos) Finalizar(m);

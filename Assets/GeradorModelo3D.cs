@@ -550,6 +550,7 @@ public class GeradorModelo3D : MonoBehaviour
         raiz.AddComponent<ColisorPegada>();   // caixa pelos bounds visíveis (antes do XRGrabInteractable)
         raiz.AddComponent<XRGrabInteractable>();
         InteracaoMaos.Aplicar(raiz);
+        ObjetoInterativo.Garantir(raiz);   // nós/submalhas do .glb viram partes (malha única é dividida em regiões)
 
         // entrada: uma caixa de grade se desfaz em volta do modelo enquanto ele "estala" para o tamanho final
         var alvoEscala = conteudo.localScale;

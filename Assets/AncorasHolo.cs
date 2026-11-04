@@ -25,7 +25,7 @@ public class AncorasHolo : MonoBehaviour
     [Serializable]
     class Reg
     {
-        public string guid, tipo, forma, cor, extra;
+        public string guid, tipo, forma, cor, extra, estado;
         public float tamanho;
     }
 
@@ -126,7 +126,8 @@ public class AncorasHolo : MonoBehaviour
             GameObject go;
             try
             {
-                go = fabrica(new HoloItem { tipo = reg.tipo, forma = reg.forma, cor = reg.cor, extra = reg.extra, tamanho = reg.tamanho }, pos, rot);
+                go = fabrica(new HoloItem { tipo = reg.tipo, forma = reg.forma, cor = reg.cor, extra = reg.extra, tamanho = reg.tamanho, estado = reg.estado }, pos, rot);
+                if (go != null && !string.IsNullOrEmpty(reg.estado)) ObjetoInterativo.Garantir(go).AplicarEstado(reg.estado);
             }
             finally { HoloRegistro.Carregando = false; }
 
@@ -152,7 +153,7 @@ public class AncorasHolo : MonoBehaviour
             {
                 e = new Estado
                 {
-                    reg = new Reg { tipo = it.tipo, forma = it.forma, cor = it.cor, extra = it.extra, tamanho = it.tamanho },
+                    reg = new Reg { tipo = it.tipo, forma = it.forma, cor = it.cor, extra = it.extra, tamanho = it.tamanho, estado = EstadoDe(it.go) },
                     posAnterior = t.position,
                     posSalva = new Vector3(float.NaN, 0, 0),
                     rotSalva = t.rotation,
@@ -161,6 +162,10 @@ public class AncorasHolo : MonoBehaviour
                 estados[it.go] = e;
             }
             if (e.ocupado) continue;
+
+            // partes pintadas, escondidas, separadas ou girando mudaram: salva de novo com a âncora
+            string est = EstadoDe(it.go);
+            if (est != (e.reg.estado ?? "")) { e.reg.estado = est; e.posSalva = new Vector3(float.NaN, 0, 0); }
 
             if (Vector3.Distance(t.position, e.posAnterior) > 0.005f) { e.paradoDesde = Time.time; e.posAnterior = t.position; }
             bool segurando = false;
@@ -202,6 +207,12 @@ public class AncorasHolo : MonoBehaviour
         finally { e.ocupado = false; }
     }
 
+    static string EstadoDe(GameObject go)
+    {
+        var oi = go != null ? go.GetComponent<ObjetoInterativo>() : null;
+        return oi != null ? oi.Serializar() : "";
+    }
+
     // cor/tamanho mudaram: atualiza o registro salvo e força nova gravação no próximo ciclo
     public void MarcarAlterado(GameObject go)
     {
@@ -211,6 +222,7 @@ public class AncorasHolo : MonoBehaviour
         e.reg.tamanho = it.tamanho;
         e.reg.forma = it.forma;
         e.reg.extra = it.extra;
+        e.reg.estado = EstadoDe(go);
         e.posSalva = new Vector3(float.NaN, 0, 0);
     }
 
