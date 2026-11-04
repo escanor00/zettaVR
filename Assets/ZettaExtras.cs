@@ -12,6 +12,7 @@ public static class ZettaExtras
         typeof(CodigoHolo),
         typeof(MapaProjeto),
         typeof(AjustesHolo),
+        typeof(RegrasHolo),
         typeof(FormasMatematicas),
         typeof(VistaExplodida),
         typeof(GraficoHolo),

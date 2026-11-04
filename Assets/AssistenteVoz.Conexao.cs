@@ -226,6 +226,7 @@ public partial class AssistenteVoz
                 if (entradaTurno.Trim().Length > 0)
                     Debug.Log("AssistenteVoz: ouvi [" + (acordada ? "Zetta reconhecida" : "sem a palavra Zetta") + "] \"" + Sanitizar(entradaTurno.Trim()) + "\"");
                 if (!acordada && !audioNoTurno && entradaTurno.Trim().Length >= 4) MostrarAviso("diga 'Zetta' antes", 2f);
+                if (acordada && entradaTurno.Trim().Length > 0) FraseCompleta(entradaTurno.Trim());
                 audioNoTurno = false;
                 processando = false;
                 descartarSaida = false;

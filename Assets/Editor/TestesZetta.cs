@@ -153,6 +153,32 @@ public static class TestesZetta
             return Mathf.Approximately(AjustesZetta.Velocidade, 1f) && Mathf.Approximately(AjustesZetta.TamanhoEsfera, 1f) ? null : "restaurar falhou";
         });
 
+        T("Regras: gatilho, validação e armazenamento", () =>
+        {
+            if (!RegrasHolo.Casa("Zetta, boa noite!", "Boa noite")) return "não casou frase com acento/pontuação";
+            if (RegrasHolo.Casa("boa noitada", "boa noite")) return "casou palavra parcial";
+            var ok = new List<RegrasHolo.Passo> { new RegrasHolo.Passo { ferramenta = "modo_foco", args = "{\"acao\":\"entrar\"}" } };
+            Func<string, bool> existe = n => n == "modo_foco";
+            if (RegrasHolo.Validar("boa noite", ok, existe) != null) return "regra válida rejeitada";
+            if (RegrasHolo.Validar("boa noite", new List<RegrasHolo.Passo> { new RegrasHolo.Passo { ferramenta = "criar_regra" } }, n => true) == null) return "aceitou ferramenta proibida";
+            if (RegrasHolo.Validar("boa noite", new List<RegrasHolo.Passo> { new RegrasHolo.Passo { ferramenta = "x" } }, existe) == null) return "aceitou ferramenta inexistente";
+            if (RegrasHolo.Validar("boa noite", new List<RegrasHolo.Passo> { new RegrasHolo.Passo { ferramenta = "modo_foco", args = "{quebrado" } }, existe) == null) return "aceitou JSON inválido";
+            string salvo = PlayerPrefs.GetString("zetta_regras", "[]");
+            try
+            {
+                RegrasHolo.Regras.Clear();
+                RegrasHolo.Adicionar(new RegrasHolo.Regra { quando = "Teste Zz", passos = ok });
+                RegrasHolo.Adicionar(new RegrasHolo.Regra { quando = "teste zz", passos = ok });   // substitui, não duplica
+                return RegrasHolo.Regras.Count == 1 && PlayerPrefs.GetString("zetta_regras").Contains("modo_foco") ? null : "contagem = " + RegrasHolo.Regras.Count;
+            }
+            finally
+            {
+                PlayerPrefs.SetString("zetta_regras", salvo);
+                RegrasHolo.Regras.Clear();
+                RegrasHolo.Regras.AddRange(Newtonsoft.Json.JsonConvert.DeserializeObject<List<RegrasHolo.Regra>>(salvo));
+            }
+        });
+
         T("AssistenteVoz: classes parciais mantêm os métodos", () =>
         {
             var t = typeof(AssistenteVoz);

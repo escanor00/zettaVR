@@ -25,4 +25,18 @@ public partial class AssistenteVoz
         ferramentas[decl.Value<string>("name")] = tratador;
         if (!string.IsNullOrEmpty(instrucao)) instrucoesRuntime.Add(instrucao);
     }
+
+    // Fim do turno de fala do usuário, com a transcrição completa (usado pelas regras "quando eu disser X, faça Y").
+    public event Action<string> aoFraseCompleta;
+    void FraseCompleta(string frase) { aoFraseCompleta?.Invoke(frase); }
+
+    public bool TemFerramenta(string nome) { return ferramentas.ContainsKey(nome); }
+
+    // Chama uma ferramenta já registrada, como se a Gemini a tivesse chamado (thread principal).
+    public JObject ChamarFerramenta(string nome, JObject args)
+    {
+        if (!ferramentas.TryGetValue(nome, out var tratador)) return new JObject { ["erro"] = "ferramenta desconhecida: " + nome };
+        try { return tratador(args ?? new JObject()) ?? new JObject { ["result"] = "ok" }; }
+        catch (Exception e) { Debug.LogWarning("AssistenteVoz: ferramenta " + nome + " falhou: " + Sanitizar(e.Message)); return new JObject { ["erro"] = "falhou" }; }
+    }
 }
