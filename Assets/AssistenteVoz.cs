@@ -37,6 +37,7 @@ public partial class AssistenteVoz : MonoBehaviour
     public float tempoAtivaSegundos = 8f;   // modo conversa: depois de responder, sem precisar do nome
     float ultimaAtividade;
     string entradaTurno = "";
+    public string UltimaFraseUsuario => entradaTurno;
     bool novoTurnoEntrada = true;
     static readonly System.Text.RegularExpressions.Regex RegexAtivacao = new System.Text.RegularExpressions.Regex(
         @"^[\s\p{P}]*(z[eéê]+\s?t+[aáà]+|j[eéê]+\s?t+[aáà]+|zeda|seta|zeca|cheta|geta)\b", System.Text.RegularExpressions.RegexOptions.IgnoreCase);

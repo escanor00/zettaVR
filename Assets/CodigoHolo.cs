@@ -123,7 +123,6 @@ public class CodigoHolo : MonoBehaviour
         topo = 0;
         if (painel == null) Montar();
         Atualizar();
-        if (CentralZetta.Instancia != null) CentralZetta.Instancia.Fechar("código");
         return true;
     }
 

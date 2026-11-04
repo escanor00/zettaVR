@@ -72,7 +72,6 @@ public class PainelInfo : MonoBehaviour
         raiz.rotation = HoloUtil.OlharParaUsuario(pos);
 
         // central e painel de informação não ficam abertos juntos (um não cobre o outro)
-        if (CentralZetta.Instancia != null) CentralZetta.Instancia.Fechar();
 
         IconesZetta.Criar(raiz, "info", new Vector3(-tamanho.x * 0.5f + 0.035f, tamanho.y * 0.5f - 0.035f, TemaZetta.ProfundidadeTexto), 0.03f, TemaZetta.Dourado);
         HoloUtil.CriarTexto(raiz, "Titulo", titulo, new Vector3(0.012f, tamanho.y * 0.5f - 0.035f, TemaZetta.ProfundidadeTexto),

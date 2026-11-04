@@ -30,7 +30,8 @@ public class InterrupcaoPinca : MonoBehaviour
             sub = subs.Count > 0 ? subs[0] : null;
             if (sub == null || !sub.running) return;
         }
-        if (!voz.Falando) { desde = -1f; PincaNoAnel(); return; }
+        PincaNoAnel();
+        if (!voz.Falando) { desde = -1f; return; }
         if (!(Pinca(sub.rightHand) || Pinca(sub.leftHand))) { desde = -1f; return; }
         if (desde < 0f) desde = Time.time;
         else if (Time.time - desde >= segundos)
@@ -56,8 +57,8 @@ public class InterrupcaoPinca : MonoBehaviour
         }
         if (agora && !pincaAnterior)
         {
-            voz.Acordar();
-            if (CentralZetta.Instancia != null) CentralZetta.Instancia.Alternar();   // pinça na esfera também abre/fecha a central
+            if (!voz.Falando) voz.Acordar();
+            if (CentralZetta.Instancia != null) CentralZetta.Instancia.Alternar();   // pinça na esfera abre a central (renova o tempo se já aberta)
         }
         pincaAnterior = agora;
     }

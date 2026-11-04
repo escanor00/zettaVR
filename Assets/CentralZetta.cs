@@ -51,20 +51,41 @@ public class CentralZetta : MonoBehaviour
         Instancia = this;
         voz = FindAnyObjectByType<AssistenteVoz>();
         if (voz == null) return;
-        voz.RegistrarFerramenta(DeclAbrir, args => { Abrir(); return new JObject { ["result"] = "central aberta" }; }, Instrucao);
-        voz.RegistrarFerramenta(DeclFechar, args => { Fechar("voz"); return new JObject { ["result"] = "central fechada" }; });
+        voz.RegistrarFerramenta(DeclAbrir, args => { Abrir(); Renovar(); return new JObject { ["result"] = "central aberta" }; }, Instrucao);
+        voz.RegistrarFerramenta(DeclFechar, args =>
+        {
+            // "abra" lido como "feche": só fecha se a frase ouvida realmente pede para fechar/recolher
+            string frase = voz.UltimaFraseUsuario ?? "";
+            if (frase.Length > 0 && !PedeFechar(frase))
+            {
+                Debug.Log("CentralZetta: fechar_central ignorado, a frase ouvida não pede para fechar: \"" + frase.Trim() + "\"");
+                Renovar();
+                return new JObject { ["result"] = "ignorado: o usuário não pediu para fechar a central; ela continua aberta" };
+            }
+            Fechar("voz: \"" + frase.Trim() + "\"");
+            return new JObject { ["result"] = "central fechada" };
+        });
     }
 
     void OnDestroy() { if (Instancia == this) Instancia = null; }
 
     float ultimaAbertura = -10f, ultimoAlternar = -10f;
 
-    // pinça na esfera: ignora repiques da detecção de pinça (1,5 s) e nunca fecha logo depois de abrir (3 s)
+    static bool PedeFechar(string frase)
+    {
+        string f = frase.ToLowerInvariant();
+        return f.Contains("fech") || f.Contains("recolh") || f.Contains("esconda") || f.Contains("some com") || f.Contains("sumir");
+    }
+
+    public void Renovar() { ultimaAtividade = Time.time; }
+
+    // pinça/toque na esfera: um gesto conta uma vez só (debounce 0,5 s). Só ABRE; com a central aberta apenas renova o tempo.
+    // Fechar é por voz, pelo botão FECHAR ou após 60 s sem interação.
     public void Alternar()
     {
-        if (Time.time - ultimoAlternar < 1.5f) return;
+        if (Time.time - ultimoAlternar < 0.5f) return;
         ultimoAlternar = Time.time;
-        if (aberta) { if (Time.time - ultimaAbertura > 3f) Fechar("pinça"); }
+        if (aberta) Renovar();
         else Abrir();
     }
 
@@ -92,7 +113,7 @@ public class CentralZetta : MonoBehaviour
     public void Fechar(string motivo = "")
     {
         if (!aberta) return;
-        Debug.Log("CentralZetta: fechada (" + motivo + ")");
+        Debug.Log("CentralZetta: fechada, pedido por: " + (string.IsNullOrEmpty(motivo) ? "desconhecido" : motivo));
         SonsZetta.Tocar(SonsZetta.Fechar);
         aberta = false;
         StopAllCoroutines();
@@ -286,7 +307,7 @@ public class CentralZetta : MonoBehaviour
         StartCoroutine(FecharEm(0.5f));
     }
 
-    IEnumerator FecharEm(float s) { yield return new WaitForSeconds(s); Fechar("após app"); }
+    IEnumerator FecharEm(float s) { yield return new WaitForSeconds(s); Renovar(); }
 
     // ---------- atualização ----------
     void Update()
@@ -294,13 +315,47 @@ public class CentralZetta : MonoBehaviour
         if (!aberta || raiz == null) return;
         if (voz != null && voz.Falando) ultimaAtividade = Time.time;
         ultimaAtividade = Mathf.Max(ultimaAtividade, BotaoHolo.UltimaInteracao);
-        if (Time.time - ultimaAtividade > segundosParaRecolher) { Fechar("15 s sem interação"); return; }
+        if (EstadoZetta.Atual == EstadoVoz.Ouvindo || EstadoZetta.Atual == EstadoVoz.Pensando) ultimaAtividade = Time.time;   // voz
+        if (OlhandoParaCentral() || MaoPerto()) ultimaAtividade = Time.time;
+        if (Time.time - ultimaAtividade > segundosParaRecolher) { Fechar("inatividade (" + (int)segundosParaRecolher + " s sem olhar, mão ou voz)"); return; }
 
         AtualizarMedidor();
         AtualizarBrilhos();
         if (Time.time < proximaAtualizacao) return;
         proximaAtualizacao = Time.time + 0.25f;
         AtualizarTextos();
+    }
+
+    // olhar: o centro do arco (à frente de onde a central abriu) dentro de ~50° da direção do olhar
+    bool OlhandoParaCentral()
+    {
+        var cam = Camera.main;
+        if (cam == null) return false;
+        var alvo = raiz.TransformPoint(Quaternion.Euler(0f, -20f, 0f) * new Vector3(0f, 0f, 1f));
+        return Vector3.Angle(cam.transform.forward, alvo - cam.transform.position) < 50f;
+    }
+
+    static readonly System.Collections.Generic.List<UnityEngine.XR.Hands.XRHandSubsystem> subsMao = new System.Collections.Generic.List<UnityEngine.XR.Hands.XRHandSubsystem>();
+    float proximaChecagemMao;
+    bool maoPerto;
+
+    // mão a menos de 0,35 m de algum painel da central (checado 5x por segundo)
+    bool MaoPerto()
+    {
+        if (Time.time < proximaChecagemMao) return maoPerto;
+        proximaChecagemMao = Time.time + 0.2f;
+        maoPerto = false;
+        UnityEngine.SubsystemManager.GetSubsystems(subsMao);
+        var origem = FindAnyObjectByType<Unity.XR.CoreUtils.XROrigin>();
+        if (subsMao.Count == 0 || !subsMao[0].running || origem == null) return false;
+        foreach (var mao in new[] { subsMao[0].rightHand, subsMao[0].leftHand })
+        {
+            if (!mao.isTracked || !mao.GetJoint(UnityEngine.XR.Hands.XRHandJointID.IndexTip).TryGetPose(out var p)) continue;
+            var mundo = origem.Origin.transform.TransformPoint(p.position);
+            foreach (var parte in partes)
+                if (Vector3.Distance(mundo, parte.position) < 0.35f) { maoPerto = true; return true; }
+        }
+        return false;
     }
 
     void AtualizarTextos()

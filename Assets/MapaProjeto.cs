@@ -147,7 +147,6 @@ public class MapaProjeto : MonoBehaviour
     {
         if (raiz != null) return true;
         if (!Carregar()) return false;
-        if (CentralZetta.Instancia != null) CentralZetta.Instancia.Fechar("mapa");
         raiz = new GameObject("MapaProjeto").transform;
         raiz.SetParent(transform, false);
         raiz.position = HoloUtil.PontoNaVista(new Vector3(0f, 0.05f, 1.35f));

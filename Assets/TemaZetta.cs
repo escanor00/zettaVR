@@ -32,7 +32,7 @@ public static class TemaZetta
     // tempos de animação (s)
     public const float TempoEntrada = 0.45f;
     public const float TempoSaida = 0.3f;
-    public const float RecolherCentral = 15f;
+    public const float RecolherCentral = 60f;
 
     static Shader shaderVidro;
     static TMP_FontAsset fonte;

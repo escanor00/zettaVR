@@ -45,7 +45,6 @@ public class BriefingBomDia : MonoBehaviour
         linhas.Add(notas.Count == 0 ? "Sem notas" : notas.Count + " nota(s): " + Curto(notas[0]));
         linhas.Add(resumoTimers == "nenhum timer ativo" ? "Sem timers" : "Timers: " + resumoTimers);
         if (painel != null) painel.Mostrar(new JObject { ["titulo"] = "Bom dia!", ["linhas"] = new JArray(linhas), ["duracao"] = 25 });
-        if (CentralZetta.Instancia != null) CentralZetta.Instancia.Fechar("bom dia");
 
         string leituraNotas = notas.Count == 0 ? "não há notas" : "notas: " + string.Join("; ", notas);
         return new JObject
@@ -107,7 +106,6 @@ public class ModoFoco : MonoBehaviour
         if (ativo) Sair();
         ativo = true; terminou = false;
         fim = Time.time + segundos;
-        if (CentralZetta.Instancia != null) CentralZetta.Instancia.Fechar("modo foco");
         // esconde o que está na cena: painéis, timers pequenos e hologramas (guardados para voltar)
         escondidos.Clear();
         foreach (var it in HoloRegistro.Itens) if (it.go != null && it.go.activeSelf) { escondidos.Add(it.go); it.go.SetActive(false); }

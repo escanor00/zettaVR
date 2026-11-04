@@ -1,5 +1,11 @@
 # PROGRESSO
 
+# 🔧 RODADA 6 (7 tarefas) — andamento
+## 1. Central abre e fecha sozinha — feita (só Editor)
+- Causas achadas: (a) `PincaNoAnel` só rodava com a Zetta calada, então `pincaAnterior` ficava velho e uma pinça segurada reabria/alternava ao fim da fala; (b) pinça alternava (abria e fechava) e outros módulos (`bom dia`, `modo foco`, código, mapa, painel de info) chamavam `Fechar`; (c) `fechar_central` podia vir de "abra" mal ouvido; (d) recolhia em 15 s mesmo olhando para ela.
+- Agora: pinça/toque na esfera só ABRE (com ela aberta só renova o tempo), debounce 0,5 s, `PincaNoAnel` roda sempre (e só acorda quando calada). A central só fecha por "Zetta, feche a central" (a ferramenta `fechar_central` é ignorada se a frase ouvida não contém fech/recolh/esconda/some), botão FECHAR ou **60 s** sem olhar para ela, mão a <0,35 m, voz (ouvindo/pensando/falando) ou toque. Removidos os `Fechar` de outros módulos e dos botões de app (renovam o tempo). O log registra "CentralZetta: fechada, pedido por: <quem>".
+- Arquivos: `CentralZetta.cs`, `InterrupcaoPinca.cs`, `TemaZetta.cs`, `AssistenteVoz.cs` (propriedade `UltimaFraseUsuario`), `BriefingFoco.cs`, `CodigoHolo.cs`, `MapaProjeto.cs`, `PainelInfo.cs`. Console sem erros, testes 19/19.
+
 # 🌟 RESUMO FINAL — RODADA 5 (28 tarefas: A1–A5, B6–B17, C18–C22, D23–D28)
 **Estado:** as 28 tarefas foram feitas e commitadas localmente (um commit por tarefa/grupo, `778941b` … `fca2084`). Console sem erros; 19/19 testes automáticos passam; build de conferência Android em `Builds/Android/Conferencia.apk` (**NÃO instalado** no Quest; nenhum push; nada publicado). Nada foi validado com o headset: tudo abaixo foi conferido só no Editor (capturas em `Docs/capturas-redesign/`).
 
