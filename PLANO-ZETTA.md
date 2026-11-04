@@ -136,6 +136,10 @@ Faça backup/commit antes. Use um único sistema de mãos para os hologramas (ev
 
 Ver o relatório no topo do PROGRESSO.md e `Docs/REDESIGN-ZETTA.md`. Resumo: `TemaZetta` + shader `VidroHolo` + fonte Rajdhani, central sob demanda (`CentralZetta`: "abra/feche a central", pinça na esfera, recolhe em 15 s), painéis de vidro, esfera preservada. Próximas atividades: testar no óculos, ajustar legibilidade/posições, e a fase própria do avatar (ideias futuras).
 
+## Rodada 5 — módulos novos (feita no editor; falta validar no Quest)
+
+Resumo e lista de testes do headset no topo do PROGRESSO.md. Módulos entram pela lista de `ZettaExtras` (sem editar a cena) e registram as ferramentas no Awake: formas matemáticas, vista explodida, gráficos, escaneamento, bom dia, modo foco, gestos duplos, linha do tempo, etiquetas da sala, portal do clima, apresentação de modelos, desempenho, código, mapa do projeto, ajustes, regras por blocos, alertas de erro e ponte PC (`Docs/ponte-pc/`). `AssistenteVoz` agora é `partial` em 5 arquivos; `EstadoZetta` é o estado único da voz; testes: `Zetta > Rodar testes`.
+
 ## Ideias futuras (não executar sem pedido)
 
 - "Zetta, escaneie este objeto/ambiente": captura como no OpenQuestCapture e reconstrução 3D na nuvem (Gaussian splatting).

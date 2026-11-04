@@ -1,5 +1,48 @@
 # PROGRESSO
 
+# 🌟 RESUMO FINAL — RODADA 5 (28 tarefas: A1–A5, B6–B17, C18–C22, D23–D28)
+**Estado:** as 28 tarefas foram feitas e commitadas localmente (um commit por tarefa/grupo, `778941b` … `fca2084`). Console sem erros; 19/19 testes automáticos passam; build de conferência Android em `Builds/Android/Conferencia.apk` (**NÃO instalado** no Quest; nenhum push; nada publicado). Nada foi validado com o headset: tudo abaixo foi conferido só no Editor (capturas em `Docs/capturas-redesign/`).
+
+## O que entrou
+- **A (visual):** vidro mais forte com aura, central em arco com profundidade, botões reais, sons procedurais.
+- **B (funções):** formas matemáticas, vista explodida, gráficos 3D com dados reais, escaneamento, bom dia, modo foco, gestos de duas mãos, linha do tempo, etiquetas da sala, portal do clima, apresentação de modelos, sons de criar/apagar.
+- **C (qualidade):** `AssistenteVoz` em 5 arquivos parciais (sem mudar comportamento); `EstadoZetta` (máquina de estados única); testes automáticos (`Zetta > Rodar testes` → `Docs/TESTES-ZETTA.md`); painel de desempenho; cache de modelos 3D por descrição.
+- **D (ferramentas de desenvolvedor, tudo por voz):** `mostrar_codigo` (código flutuante somente leitura, cores, rolagem por botões/voz/dedo), `mostrar_mapa_projeto` (57 scripts como blocos de luz, 222 fios de dependência; tocar abre o código), `abrir_ajustes`/`ajustar_visual` (sliders de velocidade, brilho, tamanho e cor da esfera; opacidade e borda dos painéis; salvos em PlayerPrefs), `criar_regra`/`mostrar_regras`/`apagar_regra` (programação por blocos: "quando eu disser X, faça Y" só com ferramentas existentes), `mostrar_erros` + alertas vermelhos perto do sistema que falhou, `pedir_ao_pc`/`mostrar_fila_pc` (ponte PC).
+
+## Segurança e decisões
+- **Ponte PC (D28):** servidor `Docs/ponte-pc/servidor.py` (Python, só biblioteca padrão). **Não executa nada**: só guarda pedidos em `Docs/pedidos-zetta.md`. Senha de 32 caracteres gerada em `Zetta > Ponte PC > Gerar senha`, gravada só em `Assets/Segredos/ZettaSegredos.asset` e `Docs/ponte-pc/.senha` (ambos no `.gitignore`; confirmado que a senha não está em nenhum commit nem aparece no Console). Exige senha, só aceita IPs da rede local, bloqueia 5 erros por 5 min, 30 pedidos/min. É **HTTP sem criptografia**: só rede doméstica. Testado 12/12 (autenticação, bloqueio, fila, senha fora dos logs) e ponta a ponta Unity → servidor. Como iniciar: `Docs/ponte-pc/LEIA-ME.md`. Usei `HttpClient` (como o `GradioClient`), então **não mudei** `insecureHttpOption` nem o manifest. Para o APK ter a senha/endereço é preciso gerar um build novo depois de gerar a senha (o build de conferência desta rodada já foi feito com a senha gerada).
+- **Código empacotado (D23/D24):** `Assets/Resources/Codigo/*.txt` é gerado antes de cada build (`Zetta > Exportar código`; está no `.gitignore`). Só `Assets/*.cs` de topo; `Editor/`, `Segredos/` e a classe `ZettaSegredos` ficam de fora; padrões de token/chave são apagados (`[removido]`). Verificado por busca: nenhum `ghp_`/`hf_`/`AIza` no export.
+- **Regras (D26):** só ferramentas já registradas; proibidas `criar_regra`, `apagar_regra`, `mostrar_regras` e `gerar_modelo_3d` (recursão/custo). Disparam só se a Zetta foi chamada no turno ("Zetta, boa noite").
+- **Testes (C20):** harness de Editor porque os assemblies de teste da Unity não enxergam o `Assembly-CSharp`.
+- **Alertas (D27):** o mesmo erro só avisa a cada 10 s (contador ×N), máx. 4 avisos na tela e 6 novos por 10 s.
+
+## Desempenho (medido só no Editor; Quest não medido)
+- Editor: ~211 FPS, 4,7 ms/quadro, esfera 0,075 ms de CPU. Materiais compartilhados (5 no mapa), fios do mapa numa única malha de linhas, sem pós-processamento; ajustes são só 2 globais de shader e 3 multiplicadores.
+- No Quest: abrir "Zetta, mostre desempenho" (FPS, ms, memória) e conferir com OVR Metrics.
+
+## Testar no Meta Quest 3, em ordem (instale o APK só quando quiser: `adb install -r Builds/Android/Conferencia.apk`)
+1. Esfera pequena no canto inferior direito; resposta da Zetta em branco acima dela; os estados mudam giro/brilho (espera, ouvindo, pensando, falando).
+2. "Zetta, abra a central": arco ao redor da cabeça, botões afundam e brilham ao toque; recolhe em ~15 s; pinça na esfera alterna. (Conferir de novo o relato "abre e fecha logo em seguida".)
+3. "Zetta, mostre desempenho": FPS ≥ 72 com a central aberta e fechada.
+4. "Zetta, crie um nó toroidal / garrafa de Klein / DNA": forma procedural; "vista explodida"; "gráfico da temperatura da semana".
+5. "Zetta, bom dia" (hora, notas, timers, clima, notícias); "modo foco" e "sair do modo foco".
+6. Gestos: abrir as duas mãos afasta os objetos; pinça dupla longa (~1 s) recolhe.
+7. "Zetta, etiquetas da sala" (precisa dos planos da sala do Quest), "portal do clima", "linha do tempo", "me explica o sistema solar".
+8. "Zetta, abra os ajustes": arrastar o dedo nas barras (velocidade, brilho, tamanho, cor, opacidade, borda); fechar e reabrir o app mantém os valores; "restaurar o visual".
+9. "Zetta, mostre o código da esfera": painel legível, rolar com os botões e arrastando o dedo no texto; "desça".
+10. "Zetta, mostre o mapa do projeto": tocar num bloco abre o código dele; "feche o mapa".
+11. "Zetta, quando eu disser boa noite, ative o modo foco": depois "Zetta, boa noite" executa; "mostre as regras" (TESTAR/APAGAR).
+12. Forçar um erro (ex.: desligar o Wi-Fi) e ver o aviso vermelho perto da esfera; "Zetta, mostre os erros".
+13. Ponte PC (opcional): `python Docs/ponte-pc/servidor.py` no PC (mesma rede Wi-Fi; liberar o Python na rede privada), "Zetta, peça ao PC para …" e "mostre a fila do PC".
+14. "Zetta, crie um modelo 3D de um gato" duas vezes: a segunda deve aparecer na hora (cache).
+
+## Pendências / limites conhecidos
+- Nada com mão real, voz real nem a rede do Quest foi testado. Rolagem do código por dedo, sliders, toque nos blocos do mapa e botões dependem do XR Hands (não existe no Editor).
+- O visualizador de código corta linhas em 68 colunas (rolagem só vertical).
+- O mapa usa dependências por nome de tipo (pode mostrar ligações a mais quando um nome aparece só em comentário).
+- Etiquetas da sala dependem das classificações dos planos do Quest.
+- Avisos antigos do Console (CS0184, CS0618, UAC1001) permanecem; não foram introduzidos nesta rodada.
+
 # 🎨 RELATÓRIO FINAL — REDESIGN ZETTA (Direção B: assistente espacial sofisticado)
 1. **Resumo:** o visual passou a ter um sistema único (tema + shader de vidro + fonte), os painéis viraram vidro holográfico e nasceu a **central sob demanda** (cabeçalho, aplicativos, barra de comandos). Em repouso só a esfera e o rótulo de status dela aparecem. Nada de lógica foi alterado (voz/Gemini, mãos, câmeras, âncoras, 3D, Meta SDK não instalado). Nenhum push, nada publicado, nada instalado no Quest.
 2. **Melhorias visuais:** paleta oficial (`TemaZetta`), vidro com translucidez + borda + gradiente + realce no shader (sem desfoque nem pós-processamento), fonte Rajdhani SemiBold (OFL) com acentos, ícones de traço fino, tempos de animação padronizados.
@@ -42,6 +85,8 @@
 - C21: `DesempenhoHolo` (`mostrar_desempenho`): FPS, ms médio e pior (2 s), memória, nº de hologramas; borda verde/dourada/vermelha; canto inferior esquerdo. No Editor: ~211 FPS, 4,7 ms (CPU do PC, não representa o Quest).
 - C22: cache de modelos 3D por descrição (`Modelos3D/cache.json`; chave sem acento/pontuação/maiúscula; entrada com arquivo sumido é limpa). Só vale para "descricao" (a foto da câmera é sempre única).
 
+## D (ferramentas de desenvolvedor) — feitas
+- D23 `CodigoHolo` + `ExportarCodigoZetta` (cópia somente leitura em Resources/Codigo, sem segredos). D24 `MapaProjeto` (layout de forças em 3D, 1 malha de fios). D25 `AjustesZetta`/`SliderHolo`/`AjustesHolo` (globais `_ZettaOpac`/`_ZettaBorda` no shader do vidro; a esfera lê velocidade/brilho/tamanho). D26 `RegrasHolo` (+ `AssistenteVoz.ChamarFerramenta`, `TemFerramenta`, evento `aoFraseCompleta`). D27 `AlertasErros`. D28 ponte PC (`servidor.py`, `PontePcEditor`, `PonteHolo`, campos `senhaPonte`/`enderecoPonte` no `ZettaSegredos`).
 # 🎨 REDESIGN ZETTA (Direção B) — andamento por fase
 ## Fase 1 — Auditoria
 - Git: branch main; só havia `.utmp/...fingerprint.bin` modificado (artefato do Gradle, não é meu) e `Docs/` não rastreado. Compilação inicial: 0 erros (só warnings antigos).
