@@ -179,6 +179,16 @@ public static class TestesZetta
             }
         });
 
+        T("Alertas: sistema pelo script da pilha", () =>
+        {
+            string a;
+            if (AlertasErros.Sistema("x", "AssistenteVoz.Conexao.TratarMensagem () (at Assets/AssistenteVoz.Conexao.cs:200)", out a) != "voz") return "voz: " + a;
+            if (AlertasErros.Sistema("x", "(at Assets/GeradorModelo3D.cs:120)", out a) != "modelos 3D") return "3D";
+            if (AlertasErros.Sistema("x", "(at Assets/EsferaZetta.cs:77)", out a) != "esfera") return "esfera";
+            if (AlertasErros.Sistema("x", "(at Assets/AlertasErros.cs:1)", out a) != "motor Unity") return "deveria ignorar o próprio arquivo";
+            return AlertasErros.Sistema("sem pilha", "", out a) == "motor Unity" ? null : "sem pilha";
+        });
+
         T("AssistenteVoz: classes parciais mantêm os métodos", () =>
         {
             var t = typeof(AssistenteVoz);
